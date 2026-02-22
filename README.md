@@ -1,7 +1,7 @@
 # SOS 리뉴얼 (Style of Simplicity Renewal)
 
 ## 한 줄 목표
-기존 Spring Boot + Thymeleaf 기반 쇼핑몰을 React 프론트 + REST API 구조로 전환하고, AWS 배포까지 가능한 포트폴리오 프로젝트로 완성한다.
+기존 Spring Boot + Thymeleaf 기반 쇼핑몰을 React 프론트 + REST API 구조로 전환하고, AWS 배포까지 가능한 상태까지를 목표로 함.
 
 ## 리뉴얼 핵심 우선순위
 1. 운영 기본선 확보: 비밀번호 해시, 환경변수 분리, dev/prod 분리, Actuator 최소 노출
