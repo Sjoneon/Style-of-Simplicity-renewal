@@ -4,33 +4,36 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "문의") // 한글 테이블명 매핑
+@Table(name = "inquiries")
 public class Inquiry {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "문의ID") // 한글 컬럼명 매핑
+    @Column(name = "inquiry_id")
     private Long id;
 
-    @Column(name = "사용자ID", nullable = false)
+    @Column(name = "user_id", nullable = false)
     private Long userId;  // 문의를 남긴 사용자 ID
 
-    @Column(name = "제목", nullable = false)
+    @Column(name = "product_id")
+    private Long productId;
+
+    @Column(name = "title", nullable = false)
     private String title;
 
-    @Column(name = "내용", nullable = false)
+    @Column(name = "content", nullable = false)
     private String content;
 
-    @Column(name = "답변")
+    @Column(name = "answer")
     private String answer;  // 판매자가 작성한 답변
 
-    @Column(name = "등록일", nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdDate;
 
-    @Column(name = "답변작성일")
+    @Column(name = "answered_at")
     private LocalDateTime answeredDate;  // 답변이 작성된 날짜
 
-    @Column(name = "판매자이름")
+    @Column(name = "seller_name")
     private String sellerName; // 판매자 이름 (답변 작성 시 저장)
 
     // 기본 생성자
@@ -42,6 +45,9 @@ public class Inquiry {
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
 
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }

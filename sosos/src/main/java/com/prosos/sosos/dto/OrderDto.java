@@ -7,26 +7,26 @@ import java.time.LocalDateTime;
 
 public class OrderDto {
 
-    private Long id; // 주문 ID
-    private String productName; // 상품명
-    private BigDecimal totalAmount; // 총 결제 금액
-    private LocalDateTime orderDate; // 주문 날짜
-    private String status; // 주문 상태
-    private Integer quantity; // 수량
+    private Long id; // 二쇰Ц ID
+    private String productName; // ?곹뭹紐?
+    private BigDecimal totalAmount; // 珥?寃곗젣 湲덉븸
+    private LocalDateTime orderDate; // 二쇰Ц ?좎쭨
+    private String status; // 二쇰Ц ?곹깭
+    private Integer quantity; // ?섎웾
 
     public OrderDto() {}
 
-    // Order 객체를 기반으로 OrderDto 생성
+    // Order 媛앹껜瑜?湲곕컲?쇰줈 OrderDto ?앹꽦
     public OrderDto(Order order) {
         this.id = order.getId();
         this.productName = order.getProduct().getName();
         this.totalAmount = order.getTotalAmount();
         this.orderDate = order.getOrderDate();
-        this.status = order.getStatus(); // 상태값 매핑
-        this.quantity = order.getProduct().getQuantity(); // 수량 매핑
+        this.status = order.getStatus(); // ?곹깭媛?留ㅽ븨
+        this.quantity = order.getQuantity(); // ?섎웾 留ㅽ븨
 
-        // 상태 값 확인 로그
-        System.out.println("OrderDto 생성 중 상태값: " + this.status);
+        // ?곹깭 媛??뺤씤 濡쒓렇
+        System.out.println("OrderDto ?앹꽦 以??곹깭媛? " + this.status);
     }
 
     // Getters and Setters
@@ -78,3 +78,4 @@ public class OrderDto {
         this.quantity = quantity;
     }
 }
+

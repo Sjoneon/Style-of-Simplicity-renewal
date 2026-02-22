@@ -31,3 +31,19 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local DB backup SQL (do not commit raw dumps)
+db/backup/*.sql
+db/seed/*.sql
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+*.env
+
+# Local-only Spring config (keep credentials out of VCS)
+src/main/resources/application-local.properties
+src/main/resources/application-*.local.properties
+src/main/resources/application-secrets.properties
+src/main/resources/application-*.secrets.properties

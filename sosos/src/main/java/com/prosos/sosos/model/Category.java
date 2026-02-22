@@ -1,27 +1,21 @@
 package com.prosos.sosos.model;
 
 import jakarta.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
-@Table(name = "카테고리")
+@Table(name = "categories")
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "카테고리ID")
+    @Column(name = "category_id")
     private Long id;
 
-    @Column(name = "카테고리명", nullable = false)
+    @Column(name = "category_name", nullable = false)
     private String name;
 
     @ManyToOne
-    @JoinColumn(name = "부모카테고리ID", nullable = true)
+    @JoinColumn(name = "parent_category_id")
     private Category parentCategory; // 부모 카테고리
-
-    // 양방향 관계를 위한 설정 (선택 사항)
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Product> products = new ArrayList<>();
 
     // 기본 생성자
     public Category() {}
@@ -51,11 +45,4 @@ public class Category {
         this.parentCategory = parentCategory;
     }
 
-    public List<Product> getProducts() {
-        return products;
-    }
-
-    public void setProducts(List<Product> products) {
-        this.products = products;
-    }
 }

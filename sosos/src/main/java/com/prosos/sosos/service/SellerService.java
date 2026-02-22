@@ -16,7 +16,9 @@ import jakarta.servlet.http.HttpSession;
 import com.prosos.sosos.repository.InquiryRepository;
 import com.prosos.sosos.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -37,35 +39,41 @@ public class SellerService {
     private final OrderRepository orderRepository;
     private final InquiryRepository inquiryRepository;
     private final KeywordRepository keywordRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public SellerService(SellerRepository sellerRepository, ProductRepository productRepository,
                          OrderRepository orderRepository, InquiryRepository inquiryRepository,
-                         KeywordRepository keywordRepository) {
+                         KeywordRepository keywordRepository, PasswordEncoder passwordEncoder) {
         this.sellerRepository = sellerRepository;
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
         this.inquiryRepository = inquiryRepository;
         this.keywordRepository = keywordRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // 1.1.1 사업자 등록
+    // 1.1.1 ?ъ뾽???깅줉
     public Seller registerSeller(Seller seller) {
+        if (seller.getPassword() == null || seller.getPassword().isBlank()) {
+            throw new IllegalArgumentException("鍮꾨?踰덊샇???꾩닔?낅땲??");
+        }
+        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
         return sellerRepository.save(seller);
     }
 
-    // 1.1.2 사업자 로그인 (사업자등록번호만으로 로그인 가능)
+    // 1.1.2 ?ъ뾽??濡쒓렇??(?ъ뾽?먮벑濡앸쾲?몃쭔?쇰줈 濡쒓렇??媛??
     public boolean login(String businessNumber, String password) {
         Seller seller = sellerRepository.findByBusinessNumber(businessNumber);
-        return seller != null && (password.isEmpty() || seller.getPassword().equals(password));
+        return verifyAndUpgradePassword(seller, password);
     }
 
-    // 1.1.3 로그아웃
+    // 1.1.3 濡쒓렇?꾩썐
     public void logout(Long sellerId) {
-        // 로그아웃 로직: 실제 구현에서는 세션 무효화 또는 JWT 토큰 무효화가 필요할 수 있습니다.
+        // 濡쒓렇?꾩썐 濡쒖쭅: ?ㅼ젣 援ы쁽?먯꽌???몄뀡 臾댄슚???먮뒗 JWT ?좏겙 臾댄슚?붽? ?꾩슂?????덉뒿?덈떎.
     }
 
-    // 1.2.1 상품 등록 (이미지와 키워드 포함)
+    // 1.2.1 ?곹뭹 ?깅줉 (?대?吏? ?ㅼ썙???ы븿)
     public ProductDto addProduct(ProductDto productDto, MultipartFile imageFile, Map<String, List<String>> keywords, MultipartFile descriptionImageFile) {
         Product product = new Product();
         product.setName(productDto.getName());
@@ -75,27 +83,27 @@ public class SellerService {
         product.setDescription(productDto.getDescription());
         product.setSituationScore(productDto.getSituationScore());
     
-        // 대표 이미지 처리
+        // ????대?吏 泥섎━
         if (imageFile != null && !imageFile.isEmpty()) {
             String imagePath = saveImageFile(imageFile);
             product.setImageUrl(imagePath);
         }
     
-        // 상세 설명 이미지 처리
+        // ?곸꽭 ?ㅻ챸 ?대?吏 泥섎━
         if (descriptionImageFile != null && !descriptionImageFile.isEmpty()) {
             String descriptionImagePath = saveDescriptionImage(descriptionImageFile);
-            product.setDescriptionImageUrl(descriptionImagePath); // SQL 필드에 저장
+            product.setDescriptionImageUrl(descriptionImagePath); // SQL ?꾨뱶?????
         }
     
-        // 판매자 설정
+        // ?먮ℓ???ㅼ젙
         Seller seller = sellerRepository.findById(productDto.getSellerId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 판매자가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID???먮ℓ?먭? 議댁옱?섏? ?딆뒿?덈떎."));
         product.setSeller(seller);
     
-        // 상품 저장
+        // ?곹뭹 ???
         Product savedProduct = productRepository.save(product);
     
-        // 키워드 저장
+        // ?ㅼ썙?????
         saveKeywords(savedProduct, keywords);
     
         return new ProductDto(savedProduct);
@@ -104,34 +112,34 @@ public class SellerService {
     
     
 
-    // 키워드 저장 메서드
+    // ?ㅼ썙?????硫붿꽌??
     private void saveKeywords(Product product, Map<String, List<String>> keywords) {
         keywords.forEach((type, keywordList) -> {
             keywordList.forEach(keyword -> {
-                // 키워드 가져오거나 새로 생성
+                // ?ㅼ썙??媛?몄삤嫄곕굹 ?덈줈 ?앹꽦
                 Keyword keywordEntity = keywordRepository.findByKeyword(keyword)
                     .orElseGet(() -> {
                         Keyword newKeyword = new Keyword(keyword, type);
                         return keywordRepository.save(newKeyword);
                     });
     
-                // ProductKeyword 생성 및 상품-키워드 관계 추가
+                // ProductKeyword ?앹꽦 諛??곹뭹-?ㅼ썙??愿怨?異붽?
                 Keyword.ProductKeyword productKeyword = new Keyword.ProductKeyword(product, keywordEntity);
                 product.getProductKeywords().add(productKeyword);
             });
         });
     
-        // 상품 저장 (상품-키워드 관계 포함)
+        // ?곹뭹 ???(?곹뭹-?ㅼ썙??愿怨??ы븿)
         productRepository.save(product);
     }
     
 
     
 
-    // 상품 수정 (이미지와 키워드 포함)
+    // ?곹뭹 ?섏젙 (?대?吏? ?ㅼ썙???ы븿)
     public ProductDto updateProduct(Long productId, ProductDto productDto, MultipartFile imageFile, MultipartFile descriptionImageFile) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 상품이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID???곹뭹??議댁옱?섏? ?딆뒿?덈떎."));
     
         product.setName(productDto.getName());
         product.setCategory(productDto.getCategory());
@@ -139,13 +147,13 @@ public class SellerService {
         product.setDescription(productDto.getDescription());
         product.setSituationScore(productDto.getSituationScore());
     
-        // 대표 이미지 업데이트 처리
+        // ????대?吏 ?낅뜲?댄듃 泥섎━
         if (imageFile != null && !imageFile.isEmpty()) {
             String imagePath = saveImageFile(imageFile);
             product.setImageUrl(imagePath);
         }
     
-        // 상세 설명 이미지 업데이트 처리
+        // ?곸꽭 ?ㅻ챸 ?대?吏 ?낅뜲?댄듃 泥섎━
         if (descriptionImageFile != null && !descriptionImageFile.isEmpty()) {
             String descriptionImagePath = saveDescriptionImage(descriptionImageFile);
             product.setDescriptionImageUrl(descriptionImagePath);
@@ -158,213 +166,241 @@ public class SellerService {
     
 
 
-    // 상세 설명 이미지 저장
+    // ?곸꽭 ?ㅻ챸 ?대?吏 ???
 public String saveDescriptionImage(MultipartFile descriptionImageFile) {
     try {
         String uploadDir = "C:\\Users\\Roneon\\Desktop\\SosProject\\images\\description";
         File uploadDirectory = new File(uploadDir);
         if (!uploadDirectory.exists()) {
-            uploadDirectory.mkdirs(); // 디렉토리 생성
+            uploadDirectory.mkdirs(); // ?붾젆?좊━ ?앹꽦
         }
 
-        // 고유한 파일 이름 생성
+        // 怨좎쑀???뚯씪 ?대쫫 ?앹꽦
         String uniqueFileName = UUID.randomUUID().toString() + "_" + descriptionImageFile.getOriginalFilename();
         String filePath = uploadDir + File.separator + uniqueFileName;
         File destinationFile = new File(filePath);
 
-        // 파일 저장
+        // ?뚯씪 ???
         descriptionImageFile.transferTo(destinationFile);
 
-        // 브라우저에서 접근 가능한 URL 반환
+        // 釉뚮씪?곗??먯꽌 ?묎렐 媛?ν븳 URL 諛섑솚
         return "/images/description/" + uniqueFileName;
     } catch (IOException e) {
-        throw new RuntimeException("상세 설명 이미지 저장 실패", e);
+        throw new RuntimeException("?곸꽭 ?ㅻ챸 ?대?吏 ????ㅽ뙣", e);
     }
 }
 
 
 
-    // 이미지 저장 로직 (예: 로컬 파일 시스템 또는 클라우드 스토리지)
+    // ?대?吏 ???濡쒖쭅 (?? 濡쒖뺄 ?뚯씪 ?쒖뒪???먮뒗 ?대씪?곕뱶 ?ㅽ넗由ъ?)
     private String saveImageFile(MultipartFile imageFile) {
         try {
-            String uploadDir = "C:\\Users\\Roneon\\Desktop\\SosProject\\images"; // 이미지 저장 폴더
+            String uploadDir = "C:\\Users\\Roneon\\Desktop\\SosProject\\images"; // ?대?吏 ????대뜑
             File uploadDirectory = new File(uploadDir);
             if (!uploadDirectory.exists()) {
-                uploadDirectory.mkdirs(); // 디렉토리가 없으면 생성
+                uploadDirectory.mkdirs(); // ?붾젆?좊━媛 ?놁쑝硫??앹꽦
             }
     
-            // 파일 이름을 UUID로 설정하여 고유하게 만듭니다.
+            // ?뚯씪 ?대쫫??UUID濡??ㅼ젙?섏뿬 怨좎쑀?섍쾶 留뚮벊?덈떎.
             String uniqueFileName = UUID.randomUUID().toString() + "_" + imageFile.getOriginalFilename();
             String filePath = uploadDir + File.separator + uniqueFileName;
             File destinationFile = new File(filePath);
     
-            // 이미지 파일 저장
+            // ?대?吏 ?뚯씪 ???
             imageFile.transferTo(destinationFile);
     
-            // 브라우저에서 접근 가능한 URL 반환
+            // 釉뚮씪?곗??먯꽌 ?묎렐 媛?ν븳 URL 諛섑솚
             return "/images/" + uniqueFileName;
         } catch (IOException e) {
-            throw new RuntimeException("이미지 파일 저장에 실패했습니다.", e);
+            throw new RuntimeException("?대?吏 ?뚯씪 ??μ뿉 ?ㅽ뙣?덉뒿?덈떎.", e);
         }
     }
     
     
 
-    // 1.2.3 상품 삭제
+    // 1.2.3 ?곹뭹 ??젣
     public void deleteProduct(Long productId) {
         productRepository.deleteById(productId);
     }
 
-    // 1.2.4 물품 제목 검색
+    // 1.2.4 臾쇳뭹 ?쒕ぉ 寃??
     public List<ProductDto> searchProductsByTitle(String title) {
         List<Product> products = productRepository.findByNameContaining(title);
         return products.stream().map(ProductDto::new).toList();
     }
 
-    // 1.2.5 전체 상품 목록 조회
+    // 1.2.5 ?꾩껜 ?곹뭹 紐⑸줉 議고쉶
     public List<ProductDto> getAllProducts() {
         List<Product> products = productRepository.findAll();
         return products.stream().map(ProductDto::new).toList();
     }
 
-    // 1.2.6 카테고리 분류
+    // 1.2.6 移댄뀒怨좊━ 遺꾨쪟
     public List<ProductDto> getProductsByCategory(String categoryName) {
-        // 카테고리 필드를 기준으로 검색
+        // 移댄뀒怨좊━ ?꾨뱶瑜?湲곗??쇰줈 寃??
         List<Product> products = productRepository.findByCategory(categoryName);
         return products.stream().map(ProductDto::new).toList();
     }
     
-    //1.2.7 상세페이지 조회
+    //1.2.7 ?곸꽭?섏씠吏 議고쉶
     public ProductDto getProductById(Long id) {
-        System.out.println("상품 조회 중... ID: " + id);
+        System.out.println("?곹뭹 議고쉶 以?.. ID: " + id);
         Product product = productRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("해당 ID의 상품이 존재하지 않습니다."));
-        System.out.println("조회된 상품: " + product.getName());
+            .orElseThrow(() -> new IllegalArgumentException("?대떦 ID???곹뭹??議댁옱?섏? ?딆뒿?덈떎."));
+        System.out.println("議고쉶???곹뭹: " + product.getName());
         return new ProductDto(product);
     }
     
     
-    // 1.3.1 신규 주문 확인 및 처리
+    // 1.3.1 ?좉퇋 二쇰Ц ?뺤씤 諛?泥섎━
+    @Transactional
     public void processOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 주문이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??二쇰Ц??議댁옱?섏? ?딆뒿?덈떎."));
         order.setStatus("PROCESSED");
         orderRepository.save(order);
     }
 
-    // 1.3.2 취소 관리
+    // 1.3.2 痍⑥냼 愿由?
+    @Transactional
     public void cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 주문이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??二쇰Ц??議댁옱?섏? ?딆뒿?덈떎."));
         order.setStatus("CANCELLED");
         orderRepository.save(order);
     }
 
-    // 1.3.3 반품 관리
+    // 1.3.3 諛섑뭹 愿由?
+    @Transactional
     public void processReturn(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 주문이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??二쇰Ц??議댁옱?섏? ?딆뒿?덈떎."));
         order.setStatus("RETURNED");
         orderRepository.save(order);
     }
 
-    // 1.3.4 교환 관리
+    // 1.3.4 援먰솚 愿由?
+    @Transactional
     public void processExchange(Long orderId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 주문이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??二쇰Ц??議댁옱?섏? ?딆뒿?덈떎."));
         order.setStatus("EXCHANGED");
         orderRepository.save(order);
     }
 
 
     // 1.3.5 즉시 구매 처리
+    @Transactional
     public void processPurchase(Long productId, HttpSession session) {
-        // 세션에서 사용자 정보 가져오기
         User buyer = (User) session.getAttribute("loggedInUser");
         if (buyer == null) {
-            throw new IllegalStateException("로그인된 사용자가 없습니다.");
+            throw new IllegalStateException("로그인한 사용자가 없습니다.");
         }
-    
-        Product product = productRepository.findById(productId)
+
+        int orderQuantity = 1;
+        Product product = productRepository.findByIdForUpdate(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-    
-        if (product.getQuantity() <= 0) {
+
+        if (product.getQuantity() < orderQuantity) {
             throw new IllegalArgumentException("재고가 부족합니다.");
         }
-    
-        // 상품 수량 감소
-        product.setQuantity(product.getQuantity() - 1);
-        productRepository.save(product);
-    
-        // 주문 정보 저장
+
+        product.setQuantity(product.getQuantity() - orderQuantity);
+
         Order order = new Order();
         order.setBuyer(buyer);
         order.setProduct(product);
+        order.setQuantity(orderQuantity);
         order.setOrderDate(LocalDateTime.now());
-        if (product.getQuantity() == 0) {
-            order.setStatus("품절");
-        } else {
-            order.setStatus("남은 수량: " + product.getQuantity() + "개");
-        }
-        order.setTotalAmount(BigDecimal.valueOf(product.getPrice()));
+        order.setStatus("ORDERED");
+        order.setTotalAmount(BigDecimal.valueOf(product.getPrice())
+                .multiply(BigDecimal.valueOf(orderQuantity)));
         orderRepository.save(order);
     }
-    
 
-    // 1.3.6 판매자별 주문 조회
+
+    // 1.3.6 ?먮ℓ?먮퀎 二쇰Ц 議고쉶
     public List<Order> getOrdersBySeller(Long sellerId) {
         Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new IllegalArgumentException("판매자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?먮ℓ?먮? 李얠쓣 ???놁뒿?덈떎."));
         return orderRepository.findByProduct_Seller(seller);
     }
 
-    // 1.4.1 문의 답변 등록
+    // 1.4.1 臾몄쓽 ?듬? ?깅줉
     public void answerInquiry(Long inquiryId, String answer) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 문의가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??臾몄쓽媛 議댁옱?섏? ?딆뒿?덈떎."));
         inquiry.setAnswer(answer);
-        inquiry.setSellerName("노란 닉네임"); // 닉네임 설정
+        inquiry.setSellerName("시스템"); // ?됰꽕???ㅼ젙
         inquiry.setAnsweredDate(LocalDateTime.now());
         inquiryRepository.save(inquiry);
     }
 
 
-    // 1.4.2 문의 답변 삭제
+    // 1.4.2 臾몄쓽 ?듬? ??젣
     public void deleteInquiryAnswer(Long inquiryId) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 문의가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??臾몄쓽媛 議댁옱?섏? ?딆뒿?덈떎."));
         inquiry.setAnswer(null);
         inquiryRepository.save(inquiry);
     }
 
-    // 1.4.3 문의 답변 수정
+    // 1.4.3 臾몄쓽 ?듬? ?섏젙
     public void updateInquiryAnswer(Long inquiryId, String newAnswer) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 문의가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ID??臾몄쓽媛 議댁옱?섏? ?딆뒿?덈떎."));
         inquiry.setAnswer(newAnswer);
         inquiryRepository.save(inquiry);
     }
 
-    // 1.5.1 키워드 관리
+    // 1.5.1 ?ㅼ썙??愿由?
     public void manageKeyword(String keyword, boolean add) {
         if (add) {
-            // 새 키워드 생성 및 저장
-            Keyword newKeyword = new Keyword(keyword, ""); // 타입 필드에 대한 기본 값 설정
+            // ???ㅼ썙???앹꽦 諛????
+            Keyword newKeyword = new Keyword(keyword, ""); // ????꾨뱶?????湲곕낯 媛??ㅼ젙
             keywordRepository.save(newKeyword);
         } else {
-            // 키워드 삭제
+            // ?ㅼ썙????젣
             Optional<Keyword> keywordToDelete = keywordRepository.findByKeyword(keyword);
             if (keywordToDelete.isPresent()) {
                 keywordRepository.delete(keywordToDelete.get());
             } else {
-                throw new IllegalArgumentException("해당 키워드가 존재하지 않습니다.");
+                throw new IllegalArgumentException("?대떦 ?ㅼ썙?쒓? 議댁옱?섏? ?딆뒿?덈떎.");
             }
         }
     }
 
 
-    // 1.6.1 사업자등록번호로 판매자 조회
+    // 1.6.1 ?ъ뾽?먮벑濡앸쾲?몃줈 ?먮ℓ??議고쉶
     public Seller findByBusinessNumber(String businessNumber) {
         return sellerRepository.findByBusinessNumber(businessNumber);
     }
+
+    private boolean verifyAndUpgradePassword(Seller seller, String rawPassword) {
+        if (seller == null || rawPassword == null || rawPassword.isBlank()) {
+            return false;
+        }
+
+        String storedPassword = seller.getPassword();
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return false;
+        }
+
+        try {
+            if (passwordEncoder.matches(rawPassword, storedPassword)) {
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Legacy plaintext password may exist in old rows.
+        }
+
+        if (storedPassword.equals(rawPassword)) {
+            seller.setPassword(passwordEncoder.encode(rawPassword));
+            sellerRepository.save(seller);
+            return true;
+        }
+
+        return false;
+    }
 }
+

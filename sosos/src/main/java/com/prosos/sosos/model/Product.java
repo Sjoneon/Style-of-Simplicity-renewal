@@ -7,40 +7,40 @@ import java.util.List;
 import com.prosos.sosos.dto.ProductDto;
 
 @Entity
-@Table(name = "상품")
+@Table(name = "products")
 public class Product {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "상품ID")
+    @Column(name = "product_id")
     private Long id;
 
-    @Column(name = "상품명", nullable = false)
+    @Column(name = "product_name", nullable = false)
     private String name;
 
-    @Column(name = "카테고리", nullable = false)
+    @Column(name = "category", nullable = false)
     private String category;
 
-    @Column(name = "가격", nullable = false)
+    @Column(name = "price", nullable = false)
     private double price;
 
-    @Column(name = "수량", nullable = false)
+    @Column(name = "quantity", nullable = false)
     private int quantity;
 
-    @Column(name = "상세설명", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "상황별점수")
+    @Column(name = "situation_score")
     private Integer situationScore;
 
-    @Column(name = "이미지URL")
+    @Column(name = "image_url")
     private String imageUrl;
 
-    @Column(name = "상세설명이미지URL")
+    @Column(name = "description_image_url")
     private String descriptionImageUrl;
 
     @ManyToOne
-    @JoinColumn(name = "판매자ID", nullable = false)
+    @JoinColumn(name = "seller_id", nullable = false)
     private Seller seller;
 
     // Keyword.ProductKeyword와의 일대다 관계

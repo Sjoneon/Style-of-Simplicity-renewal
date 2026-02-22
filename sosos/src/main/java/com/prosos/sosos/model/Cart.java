@@ -3,23 +3,23 @@ package com.prosos.sosos.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "장바구니")
+@Table(name = "cart_items")
 public class Cart {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "장바구니ID")
+    @Column(name = "cart_item_id")
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "사용자ID", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "상품ID", nullable = false)
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "수량", nullable = false)
+    @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
     // Getters and Setters

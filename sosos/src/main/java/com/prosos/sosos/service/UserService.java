@@ -13,13 +13,16 @@ import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.UserRepository;
 
 import java.util.ArrayList;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
@@ -28,134 +31,210 @@ public class UserService {
     private final ProductRepository productRepository;
     private final CartRepository cartRepository;
     private final OrderRepository orderRepository;
+    private final PasswordEncoder passwordEncoder;
     private final Map<User, List<Product>> userCartData = new ConcurrentHashMap<>();
 
 
-    public UserService(UserRepository userRepository, ProductRepository productRepository, CartRepository cartRepository, OrderRepository orderRepository) {
+    public UserService(UserRepository userRepository,
+                       ProductRepository productRepository,
+                       CartRepository cartRepository,
+                       OrderRepository orderRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.cartRepository = cartRepository;
         this.orderRepository = orderRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    // 로그인 로직
+    // 濡쒓렇??濡쒖쭅
     public boolean login(UserLoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail());
-        return user != null && user.getPassword().equals(request.getPassword());
+        return verifyAndUpgradePassword(user, request.getPassword());
     }
 
-    // 사용자 ID로 사용자 찾기
+    // ?ъ슜??ID濡??ъ슜??李얘린
     public User findUserById(Long userId) {
         return userRepository.findById(userId).orElse(null);
     }
 
-    // 이메일로 사용자 정보 조회
+    // ?대찓?쇰줈 ?ъ슜???뺣낫 議고쉶
     public User findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
-    // 이메일과 비밀번호로 일반 사용자 로그인
+    // ?대찓?쇨낵 鍮꾨?踰덊샇濡??쇰컲 ?ъ슜??濡쒓렇??
     public boolean login(String email, String password) {
         User user = userRepository.findByEmail(email);
-        return user != null && user.getPassword().equals(password);
+        return verifyAndUpgradePassword(user, password);
     }
 
-    // 회원가입
+    // ?뚯썝媛??
     public void registerUser(String name, String email, String password, String phone, String address) {
-        // 휴대폰 번호 형식 검증
+        // ?대???踰덊샇 ?뺤떇 寃利?
         if (!phone.matches("010-\\d{3,4}-\\d{4}")) {
-            throw new IllegalArgumentException("휴대폰 번호는 '010-XXXX-XXXX' 형식으로 입력해야 합니다.");
+            throw new IllegalArgumentException("?대???踰덊샇??'010-XXXX-XXXX' ?뺤떇?쇰줈 ?낅젰?댁빞 ?⑸땲??");
         }
 
-        // 이메일 중복 검증
+        // ?대찓??以묐났 寃利?
         if (userRepository.findByEmail(email) != null) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new IllegalArgumentException("?대? ?ъ슜 以묒씤 ?대찓?쇱엯?덈떎.");
         }
 
-        // 사용자 생성 및 저장
+        // ?ъ슜???앹꽦 諛????
         User user = new User();
         user.setName(name);
         user.setEmail(email);
-        user.setPassword(password);
+        user.setPassword(passwordEncoder.encode(password));
         user.setPhone(phone);
         user.setAddress(address);
 
         userRepository.save(user);
     }
 
+    private boolean verifyAndUpgradePassword(User user, String rawPassword) {
+        if (user == null || rawPassword == null || rawPassword.isBlank()) {
+            return false;
+        }
 
-    // 장바구니에 상품 추가
+        String storedPassword = user.getPassword();
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return false;
+        }
+
+        try {
+            if (passwordEncoder.matches(rawPassword, storedPassword)) {
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Legacy plaintext password may exist in old rows.
+        }
+
+        if (storedPassword.equals(rawPassword)) {
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userRepository.save(user);
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // ?λ컮援щ땲???곹뭹 異붽?
     public void addToCart(User user, ProductDto productDto, int quantity) {
-        // 수량이 1 이상이어야만 추가
+        // ?섎웾??1 ?댁긽?댁뼱?쇰쭔 異붽?
         if (quantity <= 0) {
-            throw new IllegalArgumentException("수량은 1개 이상이어야 합니다.");
+            throw new IllegalArgumentException("?섎웾? 1媛??댁긽?댁뼱???⑸땲??");
         }
     
-        // Cart 객체 추가
+        // Cart 媛앹껜 異붽?
         Cart cart = cartRepository.findByUserIdAndProductId(user.getId(), productDto.getId());
         if (cart == null) {
-            // 장바구니에 해당 상품이 없다면 새로 추가
+            // ?λ컮援щ땲???대떦 ?곹뭹???녿떎硫??덈줈 異붽?
             cart = new Cart();
             cart.setUser(user);
-            cart.setProduct(new Product(productDto));  // ProductDto를 Product로 변환
-            cart.setQuantity(quantity);  // 사용자가 선택한 수량을 그대로 설정
+            cart.setProduct(new Product(productDto));  // ProductDto瑜?Product濡?蹂??
+            cart.setQuantity(quantity);  // ?ъ슜?먭? ?좏깮???섎웾??洹몃?濡??ㅼ젙
         } else {
-            // 이미 장바구니에 해당 상품이 있다면 수량을 새로 설정
-            cart.setQuantity(quantity);  // 기존 수량을 덮어쓰고 새 수량을 설정
+            // ?대? ?λ컮援щ땲???대떦 ?곹뭹???덈떎硫??섎웾???덈줈 ?ㅼ젙
+            cart.setQuantity(quantity);  // 湲곗〈 ?섎웾????뼱?곌퀬 ???섎웾???ㅼ젙
         }
-        cartRepository.save(cart); // 장바구니 저장
+        cartRepository.save(cart); // ?λ컮援щ땲 ???
     }
     
 
-    // 장바구니에서 상품 제거
+    // ?λ컮援щ땲?먯꽌 ?곹뭹 ?쒓굅
     public void removeFromCart(User user, Long productId) {
-        Cart cart = cartRepository.findByUserIdAndProductId(user.getId(), productId); // 장바구니에서 상품 찾기
+        Cart cart = cartRepository.findByUserIdAndProductId(user.getId(), productId); // ?λ컮援щ땲?먯꽌 ?곹뭹 李얘린
         if (cart != null) {
-            cartRepository.delete(cart);  // 장바구니에서 해당 상품 삭제
+            cartRepository.delete(cart);  // ?λ컮援щ땲?먯꽌 ?대떦 ?곹뭹 ??젣
         }
     }
     
 
-    // 사용자별 장바구니 데이터 조회
+    // ?ъ슜?먮퀎 ?λ컮援щ땲 ?곗씠??議고쉶
     public List<ProductDto> getCartItems(User user) {
-        List<Cart> carts = cartRepository.findByUserId(user.getId()); // 장바구니 데이터를 찾는다.
+        List<Cart> foundCarts = cartRepository.findByUserId(user.getId());
+        List<Cart> carts = foundCarts == null ? new ArrayList<>() : new ArrayList<>(foundCarts); // ?λ컮援щ땲 ?곗씠?곕? 李얜뒗??
         List<ProductDto> productDtos = new ArrayList<>();
         
         if (carts.isEmpty()) {
-            System.out.println("장바구니가 비어 있습니다."); // 콘솔에서 로그를 통해 확인
+            System.out.println("?λ컮援щ땲媛 鍮꾩뼱 ?덉뒿?덈떎."); // 肄섏넄?먯꽌 濡쒓렇瑜??듯빐 ?뺤씤
         }
     
         for (Cart cart : carts) {
-            ProductDto productDto = new ProductDto(cart.getProduct()); // Cart에서 ProductDto로 변환
-            productDto.setQuantity(cart.getQuantity());  // 장바구니에서 가져온 수량을 ProductDto에 설정
+            ProductDto productDto = new ProductDto(cart.getProduct()); // Cart?먯꽌 ProductDto濡?蹂??
+            productDto.setQuantity(cart.getQuantity());  // ?λ컮援щ땲?먯꽌 媛?몄삩 ?섎웾??ProductDto???ㅼ젙
             productDtos.add(productDto);
         }
         return productDtos;
     }
     
 
-    // 구매 처리
+    // 援щℓ 泥섎━
+    @Transactional
+    public void purchaseCart(User user) {
+        List<Cart> foundCarts = cartRepository.findByUserId(user.getId());
+        List<Cart> carts = foundCarts == null ? new ArrayList<>() : new ArrayList<>(foundCarts);
+        if (carts == null || carts.isEmpty()) {
+            throw new IllegalStateException("?λ컮援щ땲媛 鍮꾩뼱 ?덉뒿?덈떎.");
+        }
+
+        // Deadlock risk is lower when rows are locked in a fixed order.
+        carts.sort(Comparator.comparing(cart -> cart.getProduct().getId()));
+
+        for (Cart cart : carts) {
+            int orderQuantity = cart.getQuantity() == null ? 0 : cart.getQuantity();
+            if (orderQuantity <= 0) {
+                throw new IllegalArgumentException("二쇰Ц ?섎웾???щ컮瑜댁? ?딆뒿?덈떎.");
+            }
+
+            Long productId = cart.getProduct().getId();
+            Product product = productRepository.findByIdForUpdate(productId)
+                    .orElseThrow(() -> new IllegalArgumentException("?곹뭹??李얠쓣 ???놁뒿?덈떎. id=" + productId));
+
+            if (product.getQuantity() < orderQuantity) {
+                throw new IllegalArgumentException(
+                        "?ш퀬媛 遺議깊빀?덈떎. ?곹뭹ID=" + productId + ", ?붿껌=" + orderQuantity + ", ?ш퀬=" + product.getQuantity());
+            }
+
+            product.setQuantity(product.getQuantity() - orderQuantity);
+
+            Order order = new Order();
+            order.setBuyer(user);
+            order.setProduct(product);
+            order.setQuantity(orderQuantity);
+            order.setOrderDate(LocalDateTime.now());
+            order.setStatus("ORDERED");
+            order.setTotalAmount(BigDecimal.valueOf(product.getPrice())
+                    .multiply(BigDecimal.valueOf(orderQuantity)));
+            orderRepository.save(order);
+        }
+
+        cartRepository.deleteAll(carts);
+    }
+
     public void checkout(User user) {
         List<Product> cart = userCartData.get(user);
         if (cart == null || cart.isEmpty()) {
-            throw new IllegalStateException("장바구니가 비어 있습니다.");
+            throw new IllegalStateException("?λ컮援щ땲媛 鍮꾩뼱 ?덉뒿?덈떎.");
         }
-        userCartData.remove(user); // 구매 완료 후 장바구니 초기화
+        userCartData.remove(user); // 援щℓ ?꾨즺 ???λ컮援щ땲 珥덇린??
     }
 
     public void clearCart(User user) {
-        // 사용자 장바구니에서 모든 항목을 삭제
+        // ?ъ슜???λ컮援щ땲?먯꽌 紐⑤뱺 ??ぉ????젣
         List<Cart> userCarts = cartRepository.findByUserId(user.getId());
         cartRepository.deleteAll(userCarts);
     }
 
-    // 사용자별 주문 기록 조회
+    // ?ъ슜?먮퀎 二쇰Ц 湲곕줉 議고쉶
     public List<OrderDto> getOrdersByUserId(Long userId) {
         List<Order> orders = orderRepository.findByBuyerId(userId);
         if (orders.isEmpty()) {
-            System.out.println("주문 기록이 없습니다.");
+            System.out.println("二쇰Ц 湲곕줉???놁뒿?덈떎.");
         } else {
-            System.out.println("주문 기록: " + orders);
+            System.out.println("二쇰Ц 湲곕줉: " + orders);
         }
     
         List<OrderDto> orderDtos = new ArrayList<>();
@@ -168,3 +247,4 @@ public class UserService {
     
     
 }
+

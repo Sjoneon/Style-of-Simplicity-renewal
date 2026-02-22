@@ -5,18 +5,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "키워드") // MySQL 테이블명에 한글 사용
+@Table(name = "keywords")
 public class Keyword {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "키워드ID") // 키워드 테이블의 기본 키
+    @Column(name = "keyword_id")
     private Long id;
 
-    @Column(name = "키워드", nullable = false) // 키워드 이름
+    @Column(name = "keyword_text", nullable = false)
     private String keyword;
 
-    @Column(name = "타입") // "body", "style", "situation"
+    @Column(name = "keyword_type") // "body", "style", "situation"
     private String type;
 
     // Product와 다대다 관계를 매핑
@@ -47,20 +47,20 @@ public class Keyword {
     }
 
     @Entity
-    @Table(name = "상품키워드") // ProductKeyword를 내부 클래스(Static Inner Class)로 포함
+    @Table(name = "product_keywords")
     public static class ProductKeyword {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
-        @Column(name = "상품키워드ID") // 기본 키
+        @Column(name = "product_keyword_id")
         private Long id;
 
         @ManyToOne
-        @JoinColumn(name = "상품ID", nullable = false) // 상품 테이블과의 외래 키
+        @JoinColumn(name = "product_id", nullable = false)
         private Product product;
 
         @ManyToOne
-        @JoinColumn(name = "키워드ID", nullable = false) // 키워드 테이블과의 외래 키
+        @JoinColumn(name = "keyword_id", nullable = false)
         private Keyword keyword;
 
         // 기본 생성자

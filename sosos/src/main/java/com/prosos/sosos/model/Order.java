@@ -5,32 +5,32 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "주문") // MySQL 테이블 이름: "주문"
+@Table(name = "orders")
 public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "주문ID")
+    @Column(name = "order_id")
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "사용자ID", nullable = false) // 외래 키: 사용자ID (구매자와 연결)
+    @JoinColumn(name = "user_id", nullable = false)
     private User buyer;
 
     @ManyToOne
-    @JoinColumn(name = "상품ID", nullable = false) // 외래 키: 상품ID (구매한 상품과 연결)
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "수량", nullable = false)
+    @Column(name = "quantity", nullable = false)
     private Integer quantity; // 장바구니에 담은 상품의 수량 정보 추가
 
-    @Column(name = "주문날짜", nullable = false)
+    @Column(name = "order_date", nullable = false)
     private LocalDateTime orderDate;
 
-    @Column(name = "주문상태")
+    @Column(name = "order_status")
     private String status;
 
-    @Column(name = "총결제금액", nullable = false)
+    @Column(name = "total_amount", nullable = false)
     private BigDecimal totalAmount;
 
     // 기본 생성자

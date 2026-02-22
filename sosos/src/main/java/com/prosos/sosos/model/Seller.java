@@ -4,27 +4,27 @@ import jakarta.persistence.*;
 import java.util.List;
 
 @Entity
-@Table(name = "판매자") // 실제 테이블 이름
+@Table(name = "sellers")
 public class Seller {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "판매자ID") // 실제 컬럼 이름
+    @Column(name = "seller_id")
     private Long id;
 
-    @Column(name = "사업자등록번호", nullable = false, unique = true)
+    @Column(name = "business_number", nullable = false, unique = true)
     private String businessNumber;
 
-    @Column(name = "비밀번호", nullable = false)
+    @Column(name = "password", nullable = false)
     private String password;
 
-    @Column(name = "사업자명", nullable = false)
+    @Column(name = "business_name", nullable = false)
     private String name;
 
-    @Column(name = "사업자주소")
+    @Column(name = "business_address")
     private String address;
 
-    @Column(name = "사업자전화번호")
+    @Column(name = "business_phone")
     private String phoneNumber;
 
     // 판매자가 보유한 상품 목록 (일대다 관계)
