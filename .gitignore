@@ -9,3 +9,15 @@
 **/application-*.local.properties
 **/application-secrets.properties
 **/application-*.secrets.properties
+
+# Runtime and local temporary artifacts
+.tmp-*.txt
+*.log
+frontend-dev.log
+sosos/backend.out.log
+sosos/backend.err.log
+sosos/uploads/
+**/uploads/
+
+# Local editor settings
+.vscode/
