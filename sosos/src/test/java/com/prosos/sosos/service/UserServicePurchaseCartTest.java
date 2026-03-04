@@ -6,6 +6,7 @@ import com.prosos.sosos.model.Product;
 import com.prosos.sosos.model.User;
 import com.prosos.sosos.repository.CartRepository;
 import com.prosos.sosos.repository.OrderRepository;
+import com.prosos.sosos.repository.ProductOptionRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,9 @@ class UserServicePurchaseCartTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private ProductOptionRepository productOptionRepository;
 
     @Mock
     private CartRepository cartRepository;
@@ -103,5 +107,56 @@ class UserServicePurchaseCartTest {
 
         verify(orderRepository, never()).save(any(Order.class));
         verify(cartRepository, never()).deleteAll(any());
+    }
+
+    @Test
+    void updateCartItemQuantity_updatesWhenStockIsEnough() {
+        User user = new User();
+        user.setId(20L);
+
+        Product product = new Product();
+        product.setId(200L);
+        product.setQuantity(5);
+
+        Cart cart = new Cart();
+        cart.setId(300L);
+        cart.setUser(user);
+        cart.setProduct(product);
+        cart.setQuantity(1);
+
+        when(cartRepository.findByIdAndUserId(300L, 20L)).thenReturn(Optional.of(cart));
+        when(productRepository.findById(200L)).thenReturn(Optional.of(product));
+
+        userService.updateCartItemQuantity(user, 300L, 4);
+
+        assertEquals(4, cart.getQuantity());
+        verify(cartRepository).save(cart);
+    }
+
+    @Test
+    void updateCartItemQuantity_throwsWhenOptionStockIsInsufficient() {
+        User user = new User();
+        user.setId(21L);
+
+        Product product = new Product();
+        product.setId(201L);
+
+        com.prosos.sosos.model.ProductOption option = new com.prosos.sosos.model.ProductOption();
+        option.setId(901L);
+        option.setProduct(product);
+        option.setQuantity(2);
+
+        Cart cart = new Cart();
+        cart.setId(301L);
+        cart.setUser(user);
+        cart.setProduct(product);
+        cart.setProductOption(option);
+        cart.setQuantity(1);
+
+        when(cartRepository.findByIdAndUserId(301L, 21L)).thenReturn(Optional.of(cart));
+        when(productOptionRepository.findById(901L)).thenReturn(Optional.of(option));
+
+        assertThrows(IllegalArgumentException.class, () -> userService.updateCartItemQuantity(user, 301L, 3));
+        verify(cartRepository, never()).save(any(Cart.class));
     }
 }

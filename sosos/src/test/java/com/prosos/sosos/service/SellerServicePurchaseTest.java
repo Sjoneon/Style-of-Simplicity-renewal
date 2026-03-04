@@ -6,6 +6,7 @@ import com.prosos.sosos.model.User;
 import com.prosos.sosos.repository.InquiryRepository;
 import com.prosos.sosos.repository.KeywordRepository;
 import com.prosos.sosos.repository.OrderRepository;
+import com.prosos.sosos.repository.ProductOptionRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.SellerRepository;
 import jakarta.servlet.http.HttpSession;
@@ -38,6 +39,9 @@ class SellerServicePurchaseTest {
     private ProductRepository productRepository;
 
     @Mock
+    private ProductOptionRepository productOptionRepository;
+
+    @Mock
     private OrderRepository orderRepository;
 
     @Mock
@@ -66,6 +70,7 @@ class SellerServicePurchaseTest {
         session.setAttribute("loggedInUser", user);
 
         when(productRepository.findByIdForUpdate(200L)).thenReturn(Optional.of(product));
+        when(productOptionRepository.findByProductIdOrderByDisplayOrderAscIdAsc(200L)).thenReturn(java.util.Collections.emptyList());
 
         sellerService.processPurchase(200L, session);
 
@@ -103,6 +108,7 @@ class SellerServicePurchaseTest {
         session.setAttribute("loggedInUser", user);
 
         when(productRepository.findByIdForUpdate(202L)).thenReturn(Optional.of(product));
+        when(productOptionRepository.findByProductIdOrderByDisplayOrderAscIdAsc(202L)).thenReturn(java.util.Collections.emptyList());
 
         assertThrows(IllegalArgumentException.class, () -> sellerService.processPurchase(202L, session));
 

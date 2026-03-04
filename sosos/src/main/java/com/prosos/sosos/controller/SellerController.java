@@ -66,7 +66,7 @@ public class SellerController {
     @PostMapping("/products/product_register")
     public String addProduct(@ModelAttribute ProductDto productDto,
                              @RequestParam("image") MultipartFile imageFile) {
-        sellerService.addProduct(productDto, imageFile, null, null);
+        sellerService.addProduct(productDto, imageFile, null, null, null);
         return "redirect:/seller/products";
     }
 

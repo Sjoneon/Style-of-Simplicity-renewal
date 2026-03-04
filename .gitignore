@@ -1,0 +1,11 @@
+# Global local secret files
+.env
+.env.*
+!.env.example
+*.env
+
+# Local-only Spring secret configs
+**/application-local.properties
+**/application-*.local.properties
+**/application-secrets.properties
+**/application-*.secrets.properties

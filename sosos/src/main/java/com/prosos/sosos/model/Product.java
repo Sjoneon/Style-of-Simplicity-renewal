@@ -39,6 +39,24 @@ public class Product {
     @Column(name = "description_image_url")
     private String descriptionImageUrl;
 
+    @Column(name = "show_in_starter_tab")
+    private Boolean showInStarterTab;
+
+    @Column(name = "show_in_gift_tab")
+    private Boolean showInGiftTab;
+
+    @Column(name = "show_in_new_tab")
+    private Boolean showInNewTab;
+
+    @Column(name = "show_in_basic_tab")
+    private Boolean showInBasicTab;
+
+    @Column(name = "show_in_work_tab")
+    private Boolean showInWorkTab;
+
+    @Column(name = "discovery_tab_keys", length = 500)
+    private String discoveryTabKeys;
+
     @ManyToOne
     @JoinColumn(name = "seller_id", nullable = false)
     private Seller seller;
@@ -46,6 +64,9 @@ public class Product {
     // Keyword.ProductKeyword와의 일대다 관계
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Keyword.ProductKeyword> productKeywords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductOption> options = new ArrayList<>();
 
     // 기본 생성자
     public Product() {}
@@ -61,6 +82,12 @@ public class Product {
         this.situationScore = productDto.getSituationScore();
         this.imageUrl = productDto.getImageUrl();
         this.descriptionImageUrl = productDto.getDescriptionImageUrl();
+        this.showInStarterTab = productDto.getShowInStarterTab();
+        this.showInGiftTab = productDto.getShowInGiftTab();
+        this.showInNewTab = productDto.getShowInNewTab();
+        this.showInBasicTab = productDto.getShowInBasicTab();
+        this.showInWorkTab = productDto.getShowInWorkTab();
+        this.discoveryTabKeys = productDto.toDiscoveryTabKeysCsv();
         // seller는 ProductDto에 포함되지 않으므로 별도로 처리해야 할 수 있음.
     }
 
@@ -92,6 +119,54 @@ public class Product {
     public String getDescriptionImageUrl() { return descriptionImageUrl; }
     public void setDescriptionImageUrl(String descriptionImageUrl) { this.descriptionImageUrl = descriptionImageUrl; }
 
+    public Boolean getShowInStarterTab() {
+        return showInStarterTab;
+    }
+
+    public void setShowInStarterTab(Boolean showInStarterTab) {
+        this.showInStarterTab = showInStarterTab;
+    }
+
+    public Boolean getShowInGiftTab() {
+        return showInGiftTab;
+    }
+
+    public void setShowInGiftTab(Boolean showInGiftTab) {
+        this.showInGiftTab = showInGiftTab;
+    }
+
+    public Boolean getShowInNewTab() {
+        return showInNewTab;
+    }
+
+    public void setShowInNewTab(Boolean showInNewTab) {
+        this.showInNewTab = showInNewTab;
+    }
+
+    public Boolean getShowInBasicTab() {
+        return showInBasicTab;
+    }
+
+    public void setShowInBasicTab(Boolean showInBasicTab) {
+        this.showInBasicTab = showInBasicTab;
+    }
+
+    public Boolean getShowInWorkTab() {
+        return showInWorkTab;
+    }
+
+    public void setShowInWorkTab(Boolean showInWorkTab) {
+        this.showInWorkTab = showInWorkTab;
+    }
+
+    public String getDiscoveryTabKeys() {
+        return discoveryTabKeys;
+    }
+
+    public void setDiscoveryTabKeys(String discoveryTabKeys) {
+        this.discoveryTabKeys = discoveryTabKeys;
+    }
+
     public Seller getSeller() { return seller; }
     public void setSeller(Seller seller) { this.seller = seller; }
 
@@ -101,5 +176,13 @@ public class Product {
 
     public void setProductKeywords(List<Keyword.ProductKeyword> productKeywords) {
         this.productKeywords = productKeywords;
+    }
+
+    public List<ProductOption> getOptions() {
+        return options;
+    }
+
+    public void setOptions(List<ProductOption> options) {
+        this.options = options;
     }
 }
