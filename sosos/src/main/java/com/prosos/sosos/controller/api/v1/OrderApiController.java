@@ -72,9 +72,13 @@ public class OrderApiController {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<ApiResponse<Void>> purchaseProduct(@RequestParam Long productId, HttpSession session) {
+    public ResponseEntity<ApiResponse<Void>> purchaseProduct(
+            @RequestParam Long productId,
+            @RequestParam(value = "optionId", required = false) Long optionId,
+            HttpSession session
+    ) {
         try {
-            sellerService.processPurchase(productId, session);
+            sellerService.processPurchase(productId, optionId, session);
             return ResponseEntity.ok(ApiResponse.success(null, "구매 처리 성공"));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -82,6 +86,22 @@ public class OrderApiController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/cart/purchase")
+    public ResponseEntity<ApiResponse<Void>> purchaseCart(HttpSession session) {
+        Object loggedInUser = session.getAttribute("loggedInUser");
+        if (!(loggedInUser instanceof User user)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.failure("사용자 로그인이 필요합니다."));
+        }
+
+        try {
+            userService.purchaseCart(user);
+            return ResponseEntity.ok(ApiResponse.success(null, "장바구니 주문 성공"));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
         }
     }
 

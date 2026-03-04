@@ -19,6 +19,10 @@ public class Cart {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_option_id")
+    private ProductOption productOption;
+
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
@@ -31,6 +35,9 @@ public class Cart {
 
     public Product getProduct() { return product; }
     public void setProduct(Product product) { this.product = product; }
+
+    public ProductOption getProductOption() { return productOption; }
+    public void setProductOption(ProductOption productOption) { this.productOption = productOption; }
 
     public Integer getQuantity() { return quantity; }
     public void setQuantity(Integer quantity) { this.quantity = quantity; }

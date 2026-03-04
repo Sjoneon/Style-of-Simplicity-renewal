@@ -7,29 +7,27 @@ import java.time.LocalDateTime;
 
 public class OrderDto {
 
-    private Long id; // 二쇰Ц ID
-    private String productName; // ?곹뭹紐?
-    private BigDecimal totalAmount; // 珥?寃곗젣 湲덉븸
-    private LocalDateTime orderDate; // 二쇰Ц ?좎쭨
-    private String status; // 二쇰Ц ?곹깭
-    private Integer quantity; // ?섎웾
+    private Long id;
+    private String productName;
+    private BigDecimal totalAmount;
+    private LocalDateTime orderDate;
+    private String status;
+    private Integer quantity;
+    private String sizeLabel;
 
-    public OrderDto() {}
+    public OrderDto() {
+    }
 
-    // Order 媛앹껜瑜?湲곕컲?쇰줈 OrderDto ?앹꽦
     public OrderDto(Order order) {
         this.id = order.getId();
         this.productName = order.getProduct().getName();
         this.totalAmount = order.getTotalAmount();
         this.orderDate = order.getOrderDate();
-        this.status = order.getStatus(); // ?곹깭媛?留ㅽ븨
-        this.quantity = order.getQuantity(); // ?섎웾 留ㅽ븨
-
-        // ?곹깭 媛??뺤씤 濡쒓렇
-        System.out.println("OrderDto ?앹꽦 以??곹깭媛? " + this.status);
+        this.status = order.getStatus();
+        this.quantity = order.getQuantity();
+        this.sizeLabel = order.getSizeLabel();
     }
 
-    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -77,5 +75,12 @@ public class OrderDto {
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
-}
 
+    public String getSizeLabel() {
+        return sizeLabel;
+    }
+
+    public void setSizeLabel(String sizeLabel) {
+        this.sizeLabel = sizeLabel;
+    }
+}
