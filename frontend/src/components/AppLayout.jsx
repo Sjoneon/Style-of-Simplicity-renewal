@@ -57,7 +57,7 @@ function AppLayout() {
             variant="h6"
             sx={{ textDecoration: 'none', color: 'text.primary', fontWeight: 900, letterSpacing: '-0.02em' }}
           >
-            SOS RENEWAL
+            SOS RENEWAL PROJECT
           </Typography>
 
           <Box sx={{ flex: 1 }} />

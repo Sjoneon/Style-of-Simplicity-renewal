@@ -14,6 +14,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
 
+function isEmail(value) {
+  return /^[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(String(value || '').trim())
+}
+
 function normalizeKoreanMobilePhone(phone) {
   const raw = String(phone || '').trim()
   const digitsOnly = raw.replace(/\D/g, '')
@@ -77,8 +81,15 @@ function AuthPage() {
     setError('')
     setInfoMessage('')
 
+    const normalizedUsername = String(loginForm.username || '').trim()
+    if (!isEmail(normalizedUsername)) {
+      setError('사용자 로그인은 이메일 형식으로만 가능합니다.')
+      setSubmitting(false)
+      return
+    }
+
     try {
-      const session = await login(loginForm)
+      const session = await login({ ...loginForm, username: normalizedUsername })
       if (session?.userType === 'seller') {
         await logout()
         setError('관리자 로그인은 전용 페이지에서 진행해 주세요.')
@@ -170,9 +181,6 @@ function AuthPage() {
               />
               <Button type="submit" variant="contained" disabled={submitting}>
                 로그인
-              </Button>
-              <Button variant="text" color="inherit" onClick={() => navigate('/admin/login')}>
-                슈퍼관리자 로그인
               </Button>
             </Stack>
           </Box>

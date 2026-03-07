@@ -151,6 +151,17 @@ function ProductDetailPage() {
     }
   }
 
+  const handleMoveSupport = () => {
+    if (!product?.id) {
+      return
+    }
+    const params = new URLSearchParams({
+      productId: String(product.id),
+      productName: product.name || '',
+    })
+    navigate(`/support?${params.toString()}`)
+  }
+
   if (loading) {
     return (
       <Stack alignItems="center" sx={{ py: 8 }}>
@@ -207,9 +218,14 @@ function ProductDetailPage() {
           </Box>
 
           <Stack spacing={1.2} sx={{ flex: 1 }}>
-            <Typography variant="h4" fontWeight={800}>
-              {product.name}
-            </Typography>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.2}>
+              <Typography variant="h4" fontWeight={800}>
+                {product.name}
+              </Typography>
+              <Button variant="text" size="small" onClick={handleMoveSupport} sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
+                상품 문의
+              </Button>
+            </Stack>
             <Typography variant="body2" color="text.secondary">
               카테고리: {product.category || '미분류'}
             </Typography>
