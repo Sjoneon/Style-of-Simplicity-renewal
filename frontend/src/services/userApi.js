@@ -15,3 +15,15 @@ export async function fetchCurrentUser() {
 export async function logoutUser() {
   return ensureApiSuccess(await api.post('/api/v1/users/logout'))
 }
+
+export async function updateMyProfile(payload) {
+  return ensureApiSuccess(await api.put('/api/v1/users/me/profile', payload))
+}
+
+export async function updateMyAddress(payload) {
+  return ensureApiSuccess(await api.put('/api/v1/users/me/address', payload))
+}
+
+export async function changeMyPassword(payload) {
+  return ensureApiSuccess(await api.post('/api/v1/users/me/password', payload))
+}

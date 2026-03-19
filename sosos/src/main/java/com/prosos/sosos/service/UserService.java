@@ -28,6 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class UserService {
 
+    private static final int PASSWORD_MIN_LENGTH = 8;
+    private static final int PASSWORD_MAX_LENGTH = 72;
+
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
@@ -90,6 +93,72 @@ public class UserService {
         userRepository.save(user);
     }
 
+    @Transactional
+    public User updateProfile(Long userId, String name, String phone, String address) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+        String safeName = name == null ? "" : name.trim();
+        if (safeName.isBlank()) {
+            throw new IllegalArgumentException("이름을 입력해 주세요.");
+        }
+
+        String normalizedPhone = normalizePhoneNumber(phone);
+        if (!normalizedPhone.matches("010-\\d{3,4}-\\d{4}")) {
+            throw new IllegalArgumentException("휴대폰 번호는 010-XXXX-XXXX 형식으로 입력해 주세요.");
+        }
+
+        String safeAddress = address == null ? "" : address.trim();
+        if (safeAddress.isBlank()) {
+            throw new IllegalArgumentException("배송지 주소를 입력해 주세요.");
+        }
+
+        user.setName(safeName);
+        user.setPhone(normalizedPhone);
+        user.setAddress(safeAddress);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateAddress(Long userId, String address) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+        String safeAddress = address == null ? "" : address.trim();
+        if (safeAddress.isBlank()) {
+            throw new IllegalArgumentException("배송지 주소를 입력해 주세요.");
+        }
+
+        user.setAddress(safeAddress);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자 정보를 찾을 수 없습니다."));
+
+        String safeCurrentPassword = currentPassword == null ? "" : currentPassword.trim();
+        String safeNewPassword = newPassword == null ? "" : newPassword.trim();
+
+        if (safeCurrentPassword.isBlank() || safeNewPassword.isBlank()) {
+            throw new IllegalArgumentException("현재 비밀번호와 새 비밀번호를 입력해 주세요.");
+        }
+
+        if (!isPasswordMatch(user.getPassword(), safeCurrentPassword)) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        validateNewPasswordPolicy(safeNewPassword);
+
+        if (isPasswordMatch(user.getPassword(), safeNewPassword)) {
+            throw new IllegalArgumentException("새 비밀번호는 기존 비밀번호와 달라야 합니다.");
+        }
+
+        user.setPassword(passwordEncoder.encode(safeNewPassword));
+        userRepository.save(user);
+    }
+
     private String normalizePhoneNumber(String phone) {
         if (phone == null) {
             return "";
@@ -105,6 +174,34 @@ public class UserService {
         }
 
         return phone.trim();
+    }
+
+    private void validateNewPasswordPolicy(String password) {
+        if (password.length() < PASSWORD_MIN_LENGTH || password.length() > PASSWORD_MAX_LENGTH) {
+            throw new IllegalArgumentException("새 비밀번호는 8자 이상 72자 이하여야 합니다.");
+        }
+
+        boolean hasLetter = password.chars().anyMatch(Character::isLetter);
+        boolean hasDigit = password.chars().anyMatch(Character::isDigit);
+        if (!hasLetter || !hasDigit) {
+            throw new IllegalArgumentException("새 비밀번호는 영문과 숫자를 각각 1자 이상 포함해야 합니다.");
+        }
+    }
+
+    private boolean isPasswordMatch(String storedPassword, String rawPassword) {
+        if (storedPassword == null || storedPassword.isBlank() || rawPassword == null || rawPassword.isBlank()) {
+            return false;
+        }
+
+        try {
+            if (passwordEncoder.matches(rawPassword, storedPassword)) {
+                return true;
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Legacy plaintext password may exist in old rows.
+        }
+
+        return storedPassword.equals(rawPassword);
     }
 
     private boolean verifyAndUpgradePassword(User user, String rawPassword) {

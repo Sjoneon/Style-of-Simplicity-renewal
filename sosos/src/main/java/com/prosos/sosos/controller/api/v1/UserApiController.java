@@ -1,7 +1,10 @@
 package com.prosos.sosos.controller.api.v1;
 
 import com.prosos.sosos.dto.ApiResponse;
+import com.prosos.sosos.dto.UserAddressUpdateRequest;
 import com.prosos.sosos.dto.UserLoginApiRequest;
+import com.prosos.sosos.dto.UserPasswordChangeRequest;
+import com.prosos.sosos.dto.UserProfileUpdateRequest;
 import com.prosos.sosos.dto.UserRegistrationRequest;
 import com.prosos.sosos.dto.UserSessionDto;
 import com.prosos.sosos.model.Seller;
@@ -14,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -115,6 +119,91 @@ public class UserApiController {
                 .body(ApiResponse.failure("로그인된 사용자가 없습니다."));
     }
 
+    @PutMapping("/me/profile")
+    public ResponseEntity<ApiResponse<UserSessionDto>> updateMyProfile(
+            @RequestBody UserProfileUpdateRequest request,
+            HttpSession session
+    ) {
+        try {
+            User loggedInUser = resolveLoggedInUser(session);
+            if (loggedInUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("사용자 로그인이 필요합니다."));
+            }
+
+            if (request == null) {
+                throw new IllegalArgumentException("수정할 회원정보를 입력해 주세요.");
+            }
+
+            User updatedUser = userService.updateProfile(
+                    loggedInUser.getId(),
+                    request.getName(),
+                    request.getPhone(),
+                    request.getAddress()
+            );
+
+            session.setAttribute("loggedInUser", updatedUser);
+            session.setAttribute("userType", "user");
+            return ResponseEntity.ok(ApiResponse.success(UserSessionDto.fromUser(updatedUser), "회원정보 수정 성공"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @PutMapping("/me/address")
+    public ResponseEntity<ApiResponse<UserSessionDto>> updateMyAddress(
+            @RequestBody UserAddressUpdateRequest request,
+            HttpSession session
+    ) {
+        try {
+            User loggedInUser = resolveLoggedInUser(session);
+            if (loggedInUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("사용자 로그인이 필요합니다."));
+            }
+
+            if (request == null) {
+                throw new IllegalArgumentException("수정할 배송지 정보를 입력해 주세요.");
+            }
+
+            User updatedUser = userService.updateAddress(loggedInUser.getId(), request.getAddress());
+            session.setAttribute("loggedInUser", updatedUser);
+            session.setAttribute("userType", "user");
+            return ResponseEntity.ok(ApiResponse.success(UserSessionDto.fromUser(updatedUser), "배송지 수정 성공"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> changeMyPassword(
+            @RequestBody UserPasswordChangeRequest request,
+            HttpSession session
+    ) {
+        try {
+            User loggedInUser = resolveLoggedInUser(session);
+            if (loggedInUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("사용자 로그인이 필요합니다."));
+            }
+
+            if (request == null) {
+                throw new IllegalArgumentException("비밀번호 변경 정보를 입력해 주세요.");
+            }
+
+            userService.changePassword(
+                    loggedInUser.getId(),
+                    request.getCurrentPassword(),
+                    request.getNewPassword()
+            );
+
+            session.invalidate();
+            return ResponseEntity.ok(ApiResponse.success(null, "비밀번호가 변경되었습니다. 다시 로그인해 주세요."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
+    }
+
     @GetMapping("/type")
     public ResponseEntity<ApiResponse<String>> getUserType(HttpSession session) {
         Object loggedInUser = session.getAttribute("loggedInUser");
@@ -143,5 +232,13 @@ public class UserApiController {
 
     private boolean isEmail(String username) {
         return username.matches("^[\\w.%+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    private User resolveLoggedInUser(HttpSession session) {
+        Object loggedInUser = session.getAttribute("loggedInUser");
+        if (loggedInUser instanceof User user) {
+            return user;
+        }
+        return null;
     }
 }
