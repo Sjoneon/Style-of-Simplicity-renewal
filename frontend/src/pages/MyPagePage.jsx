@@ -18,7 +18,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
 import { fetchMyInquiries } from '../services/inquiryApi'
 import { fetchMyOrders } from '../services/orderApi'
-import { changeMyPassword, updateMyAddress, updateMyProfile } from '../services/userApi'
+import { createMyReview, fetchMyReviews } from '../services/reviewApi'
+import { changeMyPassword, fetchMyRecentProducts, updateMyAddress, updateMyProfile } from '../services/userApi'
 import { fetchMyWishlist, removeFromWishlist } from '../services/wishlistApi'
 import { openKakaoPostcode } from '../utils/loadKakaoPostcode'
 import resolveImageUrl from '../utils/resolveImageUrl'
@@ -99,6 +100,23 @@ function normalizeWishlist(rawItems) {
   return rawItems
 }
 
+function normalizeRecentViewed(rawItems) {
+  if (!Array.isArray(rawItems)) {
+    return []
+  }
+  return rawItems
+}
+
+function normalizeReviews(rawReviews) {
+  if (!Array.isArray(rawReviews)) {
+    return []
+  }
+
+  return [...rawReviews].sort((a, b) =>
+    String(b?.createdDate || '').localeCompare(String(a?.createdDate || '')),
+  )
+}
+
 const EMPTY_PROFILE_FORM = {
   name: '',
   phone: '',
@@ -114,6 +132,12 @@ const EMPTY_PASSWORD_FORM = {
   currentPassword: '',
   newPassword: '',
   confirmPassword: '',
+}
+
+const EMPTY_REVIEW_FORM = {
+  orderId: '',
+  rating: '5',
+  content: '',
 }
 
 function composeAddressValue(addressForm) {
@@ -159,6 +183,8 @@ function MyPagePage() {
   const [orders, setOrders] = useState([])
   const [inquiries, setInquiries] = useState([])
   const [wishlistItems, setWishlistItems] = useState([])
+  const [recentViewedItems, setRecentViewedItems] = useState([])
+  const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [loggingOut, setLoggingOut] = useState(false)
@@ -171,6 +197,10 @@ function MyPagePage() {
   const [savingAddress, setSavingAddress] = useState(false)
   const [openingAddressSearch, setOpeningAddressSearch] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [savingReview, setSavingReview] = useState(false)
+  const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW_FORM)
+  const [reviewError, setReviewError] = useState('')
+  const [reviewSuccess, setReviewSuccess] = useState('')
   const [accountError, setAccountError] = useState('')
   const [accountSuccess, setAccountSuccess] = useState('')
   const [expandedSection, setExpandedSection] = useState(false)
@@ -198,6 +228,10 @@ function MyPagePage() {
       setOrders([])
       setInquiries([])
       setWishlistItems([])
+      setRecentViewedItems([])
+      setReviews([])
+      setReviewError('')
+      setReviewSuccess('')
 
       await refreshSession()
       moveToLogin()
@@ -211,6 +245,8 @@ function MyPagePage() {
       setOrders([])
       setInquiries([])
       setWishlistItems([])
+      setRecentViewedItems([])
+      setReviews([])
       return
     }
 
@@ -218,14 +254,18 @@ function MyPagePage() {
     setError('')
 
     try {
-      const [orderResponse, inquiryList, wishlistResponse] = await Promise.all([
+      const [orderResponse, inquiryList, wishlistResponse, recentProductsResponse, reviewResponse] = await Promise.all([
         fetchMyOrders(),
         fetchMyInquiries(),
         fetchMyWishlist(),
+        fetchMyRecentProducts(),
+        fetchMyReviews(),
       ])
       setOrders(normalizeOrders(orderResponse.data))
       setInquiries(normalizeInquiries(inquiryList))
       setWishlistItems(normalizeWishlist(wishlistResponse.data))
+      setRecentViewedItems(normalizeRecentViewed(recentProductsResponse.data))
+      setReviews(normalizeReviews(reviewResponse.data))
     } catch (err) {
       if (!await handleUnauthorized(err)) {
         setError(getApiErrorMessage(err, '마이페이지 정보를 불러오지 못했습니다.'))
@@ -233,6 +273,8 @@ function MyPagePage() {
       setOrders([])
       setInquiries([])
       setWishlistItems([])
+      setRecentViewedItems([])
+      setReviews([])
     } finally {
       setLoading(false)
     }
@@ -248,6 +290,9 @@ function MyPagePage() {
       setProfileForm(EMPTY_PROFILE_FORM)
       setAddressForm(EMPTY_ADDRESS_FORM)
       setPasswordForm(EMPTY_PASSWORD_FORM)
+      setReviewForm(EMPTY_REVIEW_FORM)
+      setReviewError('')
+      setReviewSuccess('')
       return
     }
 
@@ -259,6 +304,9 @@ function MyPagePage() {
       ...parseAddressValue(user.address),
     })
     setPasswordForm(EMPTY_PASSWORD_FORM)
+    setReviewForm(EMPTY_REVIEW_FORM)
+    setReviewError('')
+    setReviewSuccess('')
   }, [isUserAccount, user, user?.id, user?.name, user?.phone, user?.address])
 
   const visibleOrders = useMemo(() => {
@@ -291,6 +339,54 @@ function MyPagePage() {
   }, [inquiries])
 
   const recentInquiries = useMemo(() => inquiries.slice(0, 3), [inquiries])
+  const recentReviews = useMemo(() => reviews.slice(0, 5), [reviews])
+
+  const reviewSummary = useMemo(() => {
+    const total = reviews.length
+    if (total === 0) {
+      return {
+        total: 0,
+        average: 0,
+      }
+    }
+
+    const ratingSum = reviews.reduce((acc, review) => acc + Number(review?.rating || 0), 0)
+    return {
+      total,
+      average: ratingSum / total,
+    }
+  }, [reviews])
+
+  const reviewableOrders = useMemo(() => {
+    if (!isUserAccount) {
+      return []
+    }
+
+    const reviewedOrderIds = new Set(
+      reviews.map((review) => Number(review?.orderId)).filter((orderId) => Number.isFinite(orderId) && orderId > 0),
+    )
+
+    return orders
+      .filter((order) => {
+        const orderId = Number(order?.id)
+        const status = String(order?.status || '').toUpperCase()
+        if (!Number.isFinite(orderId) || orderId <= 0) {
+          return false
+        }
+        if (reviewedOrderIds.has(orderId)) {
+          return false
+        }
+        if (status === 'CANCELLED') {
+          return false
+        }
+        return true
+      })
+      .map((order) => ({
+        id: order.id,
+        label: `#${order.id} ${order.productName || '상품명 없음'}`,
+      }))
+  }, [isUserAccount, orders, reviews])
+
   const resolvedAddressValue = useMemo(() => composeAddressValue(addressForm), [addressForm])
 
   const toggleSection = (section) => {
@@ -458,6 +554,62 @@ function MyPagePage() {
     }
   }
 
+  const handleReviewSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!isUserAccount) {
+      setReviewError('일반 사용자 계정만 리뷰를 작성할 수 있습니다.')
+      return
+    }
+
+    const orderId = Number(reviewForm.orderId)
+    const rating = Number(reviewForm.rating)
+    const content = String(reviewForm.content || '').trim()
+
+    if (!orderId) {
+      setReviewError('리뷰를 작성할 주문을 선택해 주세요.')
+      return
+    }
+    if (!rating || rating < 1 || rating > 5) {
+      setReviewError('평점을 선택해 주세요.')
+      return
+    }
+    if (!content) {
+      setReviewError('리뷰 내용을 입력해 주세요.')
+      return
+    }
+
+    setSavingReview(true)
+    setReviewError('')
+    setReviewSuccess('')
+    setError('')
+
+    try {
+      const response = await createMyReview({ orderId, rating, content })
+      const createdReview = response?.data
+
+      if (createdReview) {
+        setReviews((previous) =>
+          normalizeReviews([
+            createdReview,
+            ...previous.filter((review) => Number(review?.orderId) !== Number(createdReview?.orderId)),
+          ]),
+        )
+      } else {
+        await loadMyPageData()
+      }
+
+      setReviewForm(EMPTY_REVIEW_FORM)
+      setReviewSuccess('리뷰를 등록했습니다.')
+    } catch (err) {
+      if (!await handleUnauthorized(err)) {
+        setReviewError(getApiErrorMessage(err, '리뷰 등록에 실패했습니다.'))
+      }
+    } finally {
+      setSavingReview(false)
+    }
+  }
+
   return (
     <Stack spacing={1.2}>
       <Paper sx={SECTION_SX}>
@@ -475,6 +627,7 @@ function MyPagePage() {
 
           <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
             <Chip size="small" variant="outlined" label={`주문 ${orderSummary.total}건`} />
+            <Chip size="small" variant="outlined" label={`리뷰 ${reviewSummary.total}건`} />
             <Chip size="small" variant="outlined" label={`문의 ${inquirySummary.total}건`} />
             <Chip size="small" variant="outlined" label={`찜 ${wishlistItems.length}건`} />
           </Stack>
@@ -734,12 +887,41 @@ function MyPagePage() {
                     )}
 
                     <Paper variant="outlined" sx={ITEM_SX}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Stack spacing={0.2}>
+                      <Stack spacing={0.8}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center">
                           <Typography fontWeight={700}>최근 본 상품</Typography>
-                          <Typography variant="caption" color="text.secondary">최근 본 상품 기록 연동 준비중</Typography>
+                          <Typography variant="caption" color="text.secondary">{`총 ${recentViewedItems.length}건`}</Typography>
                         </Stack>
-                        <Typography color="text.secondary">&gt;</Typography>
+
+                        {recentViewedItems.length === 0 ? (
+                          <Typography color="text.secondary" variant="body2">
+                            최근 본 상품이 없습니다.
+                          </Typography>
+                        ) : (
+                          <Stack spacing={0.55}>
+                            {recentViewedItems.slice(0, 5).map((item) => (
+                              <Stack
+                                key={`recent-${item.id}-${item.viewedDate || ''}`}
+                                direction={{ xs: 'column', md: 'row' }}
+                                justifyContent="space-between"
+                                spacing={0.4}
+                              >
+                                <Stack spacing={0.1}>
+                                  <Typography variant="body2" fontWeight={700}>{item.name || '상품명 없음'}</Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {(item.category || '미분류')} · {formatPrice(item.price)}원
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    마지막 조회: {formatDateTime(item.viewedDate)}
+                                  </Typography>
+                                </Stack>
+                                <Button variant="text" onClick={() => navigate(`/products/${item.id}`)} sx={{ px: 0 }}>
+                                  상품 보기
+                                </Button>
+                              </Stack>
+                            ))}
+                          </Stack>
+                        )}
                       </Stack>
                     </Paper>
                   </Stack>
@@ -758,7 +940,7 @@ function MyPagePage() {
               >
                 <Typography fontWeight={800}>4. 리뷰/문의 내역</Typography>
                 <Stack direction="row" spacing={0.6} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">{`문의 ${inquirySummary.total}건`}</Typography>
+                  <Typography variant="body2" color="text.secondary">{`리뷰 ${reviewSummary.total}건 · 문의 ${inquirySummary.total}건`}</Typography>
                   <ExpandMoreIcon
                     fontSize="small"
                     sx={{ transform: expandedSection === 'reviews' ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}
@@ -769,12 +951,130 @@ function MyPagePage() {
               {expandedSection === 'reviews' && (
                 <>
                   <Paper variant="outlined" sx={ITEM_SX}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Stack spacing={0.2}>
+                    <Stack spacing={0.8}>
+                      <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap alignItems="center">
                         <Typography fontWeight={700}>내 리뷰</Typography>
-                        <Typography variant="caption" color="text.secondary">리뷰 작성/조회 기능 연동 준비중</Typography>
+                        <Chip size="small" variant="outlined" label={`총 ${reviewSummary.total}건`} />
+                        <Chip
+                          size="small"
+                          variant="outlined"
+                          label={`평균 ${reviewSummary.total > 0 ? reviewSummary.average.toFixed(1) : '0.0'}점`}
+                        />
                       </Stack>
-                      <Typography color="text.secondary">&gt;</Typography>
+
+                      {reviewError && <Alert severity="error">{reviewError}</Alert>}
+                      {reviewSuccess && (
+                        <Alert severity="success" onClose={() => setReviewSuccess('')}>
+                          {reviewSuccess}
+                        </Alert>
+                      )}
+
+                      {!isUserAccount ? (
+                        <Typography color="text.secondary" variant="body2">
+                          일반 사용자 계정에서 리뷰를 작성/조회할 수 있습니다.
+                        </Typography>
+                      ) : (
+                        <Stack component="form" spacing={0.75} onSubmit={handleReviewSubmit}>
+                          <Stack direction={{ xs: 'column', md: 'row' }} spacing={0.7}>
+                            <TextField
+                              select
+                              size="small"
+                              label="주문 선택"
+                              value={reviewForm.orderId}
+                              onChange={(event) => setReviewForm((prev) => ({ ...prev, orderId: event.target.value }))}
+                              sx={{ minWidth: 220, flex: 1 }}
+                              required
+                            >
+                              {reviewableOrders.length === 0 ? (
+                                <MenuItem value="" disabled>
+                                  작성 가능한 주문이 없습니다.
+                                </MenuItem>
+                              ) : (
+                                reviewableOrders.map((order) => (
+                                  <MenuItem key={order.id} value={String(order.id)}>
+                                    {order.label}
+                                  </MenuItem>
+                                ))
+                              )}
+                            </TextField>
+
+                            <TextField
+                              select
+                              size="small"
+                              label="평점"
+                              value={reviewForm.rating}
+                              onChange={(event) => setReviewForm((prev) => ({ ...prev, rating: event.target.value }))}
+                              sx={{ width: { xs: '100%', md: 120 } }}
+                              required
+                            >
+                              {[5, 4, 3, 2, 1].map((rating) => (
+                                <MenuItem key={rating} value={String(rating)}>
+                                  {`${rating}점`}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                          </Stack>
+
+                          <TextField
+                            label="리뷰 내용"
+                            size="small"
+                            multiline
+                            minRows={2}
+                            maxRows={4}
+                            value={reviewForm.content}
+                            onChange={(event) => setReviewForm((prev) => ({ ...prev, content: event.target.value }))}
+                            inputProps={{ maxLength: 1000 }}
+                            placeholder="상품 사용 경험을 간단히 남겨주세요."
+                            required
+                          />
+
+                          <Stack direction="row" justifyContent="space-between" alignItems="center">
+                            <Typography variant="caption" color="text.secondary">
+                              {`${String(reviewForm.content || '').length}/1000`}
+                            </Typography>
+                            <Button type="submit" variant="outlined" disabled={savingReview || reviewableOrders.length === 0}>
+                              {savingReview ? '등록 중...' : '리뷰 등록'}
+                            </Button>
+                          </Stack>
+                        </Stack>
+                      )}
+
+                      <Divider />
+
+                      {recentReviews.length === 0 ? (
+                        <Typography color="text.secondary" variant="body2">
+                          등록된 리뷰가 없습니다.
+                        </Typography>
+                      ) : (
+                        <Stack spacing={0.55}>
+                          {recentReviews.map((review) => (
+                            <Stack key={review.id} spacing={0.15}>
+                              <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap alignItems="center">
+                                <Typography variant="body2" fontWeight={700}>
+                                  #{review.orderId} {review.productName || '상품명 없음'}
+                                </Typography>
+                                <Chip size="small" variant="outlined" label={`${review.rating || 0}점`} />
+                                <Typography variant="caption" color="text.secondary">
+                                  {formatDateTime(review.createdDate)}
+                                </Typography>
+                              </Stack>
+                              <Typography variant="body2" color="text.secondary">
+                                {review.content}
+                              </Typography>
+                              {review.productId && (
+                                <Button
+                                  variant="text"
+                                  size="small"
+                                  onClick={() => navigate(`/products/${review.productId}`)}
+                                  sx={{ alignSelf: 'flex-start', px: 0 }}
+                                >
+                                  상품 보기
+                                </Button>
+                              )}
+                            </Stack>
+                          ))}
+                        </Stack>
+                      )}
                     </Stack>
                   </Paper>
 
