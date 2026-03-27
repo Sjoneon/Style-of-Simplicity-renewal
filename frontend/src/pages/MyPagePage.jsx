@@ -19,6 +19,9 @@ import { getApiErrorMessage } from '../services/api'
 import { fetchMyInquiries } from '../services/inquiryApi'
 import { fetchMyOrders } from '../services/orderApi'
 import { changeMyPassword, updateMyAddress, updateMyProfile } from '../services/userApi'
+import { fetchMyWishlist, removeFromWishlist } from '../services/wishlistApi'
+import { openKakaoPostcode } from '../utils/loadKakaoPostcode'
+import resolveImageUrl from '../utils/resolveImageUrl'
 
 const ORDER_STATUS_LABELS = {
   ORDERED: '결제완료/배송대기',
@@ -89,19 +92,62 @@ function normalizeInquiries(rawInquiries) {
   )
 }
 
+function normalizeWishlist(rawItems) {
+  if (!Array.isArray(rawItems)) {
+    return []
+  }
+  return rawItems
+}
+
 const EMPTY_PROFILE_FORM = {
   name: '',
   phone: '',
 }
 
 const EMPTY_ADDRESS_FORM = {
+  postcode: '',
   address: '',
+  detailAddress: '',
 }
 
 const EMPTY_PASSWORD_FORM = {
   currentPassword: '',
   newPassword: '',
   confirmPassword: '',
+}
+
+function composeAddressValue(addressForm) {
+  const mainAddress = String(addressForm?.address || '').trim()
+  const detailAddress = String(addressForm?.detailAddress || '').trim()
+  const postcode = String(addressForm?.postcode || '').trim()
+
+  if (!mainAddress) {
+    return ''
+  }
+
+  const addressWithPostcode = postcode ? `(${postcode}) ${mainAddress}` : mainAddress
+  return detailAddress ? `${addressWithPostcode} ${detailAddress}`.trim() : addressWithPostcode
+}
+
+function parseAddressValue(rawAddress) {
+  const safeAddress = String(rawAddress || '').trim()
+  if (!safeAddress) {
+    return { ...EMPTY_ADDRESS_FORM }
+  }
+
+  const matched = safeAddress.match(/^\((\d{5})\)\s*(.*)$/)
+  if (!matched) {
+    return {
+      ...EMPTY_ADDRESS_FORM,
+      address: safeAddress,
+    }
+  }
+
+  return {
+    ...EMPTY_ADDRESS_FORM,
+    postcode: String(matched[1] || '').trim(),
+    address: String(matched[2] || '').trim(),
+  }
 }
 
 function MyPagePage() {
@@ -112,15 +158,18 @@ function MyPagePage() {
 
   const [orders, setOrders] = useState([])
   const [inquiries, setInquiries] = useState([])
+  const [wishlistItems, setWishlistItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [loggingOut, setLoggingOut] = useState(false)
   const [error, setError] = useState('')
+  const [removingWishlistProductId, setRemovingWishlistProductId] = useState(null)
   const [profileForm, setProfileForm] = useState(EMPTY_PROFILE_FORM)
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM)
   const [passwordForm, setPasswordForm] = useState(EMPTY_PASSWORD_FORM)
   const [savingProfile, setSavingProfile] = useState(false)
   const [savingAddress, setSavingAddress] = useState(false)
+  const [openingAddressSearch, setOpeningAddressSearch] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
   const [accountError, setAccountError] = useState('')
   const [accountSuccess, setAccountSuccess] = useState('')
@@ -148,6 +197,7 @@ function MyPagePage() {
       setError('로그인 세션이 만료되었습니다. 다시 로그인해 주세요.')
       setOrders([])
       setInquiries([])
+      setWishlistItems([])
 
       await refreshSession()
       moveToLogin()
@@ -160,6 +210,7 @@ function MyPagePage() {
     if (!isUserAccount) {
       setOrders([])
       setInquiries([])
+      setWishlistItems([])
       return
     }
 
@@ -167,18 +218,21 @@ function MyPagePage() {
     setError('')
 
     try {
-      const [orderResponse, inquiryList] = await Promise.all([
+      const [orderResponse, inquiryList, wishlistResponse] = await Promise.all([
         fetchMyOrders(),
         fetchMyInquiries(),
+        fetchMyWishlist(),
       ])
       setOrders(normalizeOrders(orderResponse.data))
       setInquiries(normalizeInquiries(inquiryList))
+      setWishlistItems(normalizeWishlist(wishlistResponse.data))
     } catch (err) {
       if (!await handleUnauthorized(err)) {
         setError(getApiErrorMessage(err, '마이페이지 정보를 불러오지 못했습니다.'))
       }
       setOrders([])
       setInquiries([])
+      setWishlistItems([])
     } finally {
       setLoading(false)
     }
@@ -202,7 +256,7 @@ function MyPagePage() {
       phone: String(user.phone || ''),
     })
     setAddressForm({
-      address: String(user.address || ''),
+      ...parseAddressValue(user.address),
     })
     setPasswordForm(EMPTY_PASSWORD_FORM)
   }, [isUserAccount, user, user?.id, user?.name, user?.phone, user?.address])
@@ -237,9 +291,30 @@ function MyPagePage() {
   }, [inquiries])
 
   const recentInquiries = useMemo(() => inquiries.slice(0, 3), [inquiries])
+  const resolvedAddressValue = useMemo(() => composeAddressValue(addressForm), [addressForm])
 
   const toggleSection = (section) => {
     setExpandedSection((prev) => (prev === section ? false : section))
+  }
+
+  const handleRemoveWishlist = async (productId) => {
+    if (!isUserAccount) {
+      setError('일반 사용자 계정에서만 찜 기능을 사용할 수 있습니다.')
+      return
+    }
+
+    setRemovingWishlistProductId(productId)
+    setError('')
+    try {
+      await removeFromWishlist(productId)
+      setWishlistItems((prev) => prev.filter((item) => item.id !== productId))
+    } catch (err) {
+      if (!await handleUnauthorized(err)) {
+        setError(getApiErrorMessage(err, '찜 해제에 실패했습니다.'))
+      }
+    } finally {
+      setRemovingWishlistProductId(null)
+    }
   }
 
   const handleLogout = async () => {
@@ -263,7 +338,7 @@ function MyPagePage() {
     const payload = {
       name: String(profileForm.name || '').trim(),
       phone: String(profileForm.phone || '').trim(),
-      address: String(addressForm.address || user?.address || '').trim(),
+      address: composeAddressValue(addressForm) || String(user?.address || '').trim(),
     }
 
     if (!payload.name || !payload.phone) {
@@ -301,9 +376,9 @@ function MyPagePage() {
       return
     }
 
-    const safeAddress = String(addressForm.address || '').trim()
+    const safeAddress = composeAddressValue(addressForm)
     if (!safeAddress) {
-      setAccountError('배송지 주소를 입력해 주세요.')
+      setAccountError('주소 검색으로 기본 주소를 선택해 주세요.')
       return
     }
 
@@ -321,6 +396,24 @@ function MyPagePage() {
       }
     } finally {
       setSavingAddress(false)
+    }
+  }
+
+  const handleOpenAddressSearch = async () => {
+    setAccountError('')
+    setOpeningAddressSearch(true)
+    try {
+      await openKakaoPostcode(({ postcode, address }) => {
+        setAddressForm((prev) => ({
+          ...prev,
+          postcode: String(postcode || '').trim(),
+          address: String(address || '').trim(),
+        }))
+      })
+    } catch (err) {
+      setAccountError(getApiErrorMessage(err, '주소 검색을 열지 못했습니다.'))
+    } finally {
+      setOpeningAddressSearch(false)
     }
   }
 
@@ -383,6 +476,7 @@ function MyPagePage() {
           <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
             <Chip size="small" variant="outlined" label={`주문 ${orderSummary.total}건`} />
             <Chip size="small" variant="outlined" label={`문의 ${inquirySummary.total}건`} />
+            <Chip size="small" variant="outlined" label={`찜 ${wishlistItems.length}건`} />
           </Stack>
           <Typography variant="caption" color="text.secondary">
             아래 항목을 눌러 세부 정보를 확인하세요.
@@ -547,7 +641,7 @@ function MyPagePage() {
               >
                 <Typography fontWeight={800}>3. 찜/최근 본</Typography>
                 <Stack direction="row" spacing={0.6} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">탐색 히스토리</Typography>
+                  <Typography variant="body2" color="text.secondary">{`찜 ${wishlistItems.length}건`}</Typography>
                   <ExpandMoreIcon
                     fontSize="small"
                     sx={{ transform: expandedSection === 'interest' ? 'rotate(180deg)' : 'rotate(0deg)', transition: '0.2s' }}
@@ -556,31 +650,100 @@ function MyPagePage() {
               </Button>
 
               {expandedSection === 'interest' && (
-                <>
-                  <Paper variant="outlined" sx={ITEM_SX}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Stack spacing={0.2}>
-                        <Typography fontWeight={700}>찜 상품</Typography>
-                        <Typography variant="caption" color="text.secondary">찜 목록 기능 연동 준비중</Typography>
+                !isUserAccount ? (
+                  <Typography color="text.secondary" variant="body2">
+                    일반 사용자 계정에서 찜 목록을 사용할 수 있습니다.
+                  </Typography>
+                ) : (
+                  <Stack spacing={0.8}>
+                    {loading ? (
+                      <Stack alignItems="center" sx={{ py: 2 }}>
+                        <CircularProgress size={20} />
                       </Stack>
-                      <Typography color="text.secondary">&gt;</Typography>
-                    </Stack>
-                  </Paper>
+                    ) : wishlistItems.length === 0 ? (
+                      <Paper variant="outlined" sx={ITEM_SX}>
+                        <Stack spacing={0.6}>
+                          <Typography color="text.secondary">찜한 상품이 없습니다.</Typography>
+                          <Button variant="text" onClick={() => navigate('/')} sx={{ alignSelf: 'flex-start', px: 0 }}>
+                            상품 둘러보기
+                          </Button>
+                        </Stack>
+                      </Paper>
+                    ) : (
+                      <Stack spacing={0.7}>
+                        {wishlistItems.map((item) => {
+                          const imageSrc = resolveImageUrl(item.imageUrl)
+                          return (
+                            <Paper key={item.id} variant="outlined" sx={ITEM_SX}>
+                              <Stack
+                                direction={{ xs: 'column', md: 'row' }}
+                                justifyContent="space-between"
+                                alignItems={{ xs: 'flex-start', md: 'center' }}
+                                spacing={0.8}
+                              >
+                                <Stack direction="row" spacing={0.8} alignItems="center">
+                                  <Box
+                                    sx={{
+                                      width: 52,
+                                      height: 52,
+                                      borderRadius: 1.2,
+                                      bgcolor: '#f2f2f2',
+                                      border: '1px solid #e5e5e5',
+                                      overflow: 'hidden',
+                                      flexShrink: 0,
+                                    }}
+                                  >
+                                    {imageSrc ? (
+                                      <Box
+                                        component="img"
+                                        src={imageSrc}
+                                        alt={item.name || '상품 이미지'}
+                                        sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                      />
+                                    ) : null}
+                                  </Box>
+                                  <Stack spacing={0.2}>
+                                    <Typography fontWeight={700}>{item.name || '상품명 없음'}</Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                      {(item.category || '미분류')} · {formatPrice(item.price)}원
+                                    </Typography>
+                                  </Stack>
+                                </Stack>
 
-                  <Paper variant="outlined" sx={ITEM_SX}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Stack spacing={0.2}>
-                        <Typography fontWeight={700}>최근 본 상품</Typography>
-                        <Typography variant="caption" color="text.secondary">최근 본 상품 기록 연동 준비중</Typography>
+                                <Stack direction="row" spacing={0.6}>
+                                  <Button
+                                    variant="text"
+                                    onClick={() => navigate(`/products/${item.id}`)}
+                                  >
+                                    상품 보기
+                                  </Button>
+                                  <Button
+                                    variant="outlined"
+                                    color="error"
+                                    onClick={() => handleRemoveWishlist(item.id)}
+                                    disabled={removingWishlistProductId === item.id}
+                                  >
+                                    {removingWishlistProductId === item.id ? '해제 중...' : '찜 해제'}
+                                  </Button>
+                                </Stack>
+                              </Stack>
+                            </Paper>
+                          )
+                        })}
                       </Stack>
-                      <Typography color="text.secondary">&gt;</Typography>
-                    </Stack>
-                  </Paper>
+                    )}
 
-                  <Button variant="text" onClick={() => navigate('/')} sx={{ alignSelf: 'flex-start', px: 0 }}>
-                    상품 둘러보기
-                  </Button>
-                </>
+                    <Paper variant="outlined" sx={ITEM_SX}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack spacing={0.2}>
+                          <Typography fontWeight={700}>최근 본 상품</Typography>
+                          <Typography variant="caption" color="text.secondary">최근 본 상품 기록 연동 준비중</Typography>
+                        </Stack>
+                        <Typography color="text.secondary">&gt;</Typography>
+                      </Stack>
+                    </Paper>
+                  </Stack>
+                )
               )}
             </Stack>
           </Paper>
@@ -663,7 +826,7 @@ function MyPagePage() {
                 <Typography fontWeight={800}>5. 배송지 관리</Typography>
                 <Stack direction="row" spacing={0.6} alignItems="center">
                   <Typography variant="body2" color="text.secondary">
-                    {addressForm.address ? '기본 배송지 등록됨' : '배송지 미등록'}
+                    {resolvedAddressValue ? '기본 배송지 등록됨' : '배송지 미등록'}
                   </Typography>
                   <ExpandMoreIcon
                     fontSize="small"
@@ -685,15 +848,55 @@ function MyPagePage() {
                     <Paper variant="outlined" sx={ITEM_SX}>
                       <Stack component="form" spacing={0.8} onSubmit={handleAddressSubmit}>
                         <Typography fontWeight={700}>배송지 수정</Typography>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.8} alignItems={{ xs: 'stretch', sm: 'center' }}>
+                          <TextField
+                            label="우편번호"
+                            size="small"
+                            value={addressForm.postcode}
+                            fullWidth
+                            InputProps={{ readOnly: true }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={handleOpenAddressSearch}
+                            disabled={openingAddressSearch}
+                            sx={{ minWidth: { xs: '100%', sm: 120 } }}
+                          >
+                            {openingAddressSearch ? '검색 중...' : '주소 검색'}
+                          </Button>
+                        </Stack>
                         <TextField
-                          label="배송지 주소"
+                          label="기본 주소"
                           size="small"
                           value={addressForm.address}
-                          onChange={(event) => setAddressForm({ address: event.target.value })}
+                          onChange={(event) => setAddressForm((prev) => ({ ...prev, address: event.target.value }))}
+                          placeholder="주소 검색 버튼으로 입력하세요."
                           fullWidth
                           required
                         />
-                        <Button type="submit" variant="outlined" disabled={savingAddress} sx={{ alignSelf: 'flex-start' }}>
+                        <TextField
+                          label="상세 주소"
+                          size="small"
+                          value={addressForm.detailAddress}
+                          onChange={(event) => setAddressForm((prev) => ({ ...prev, detailAddress: event.target.value }))}
+                          placeholder="동/호수, 건물명 등"
+                          fullWidth
+                        />
+                        {resolvedAddressValue && (
+                          <Typography variant="caption" color="text.secondary">
+                            저장 예정 주소: {resolvedAddressValue}
+                          </Typography>
+                        )}
+                        <Typography variant="caption" color="text.secondary">
+                          주소 검색으로 기본 주소를 선택하고 상세 주소를 입력해 주세요.
+                        </Typography>
+                        <Button
+                          type="submit"
+                          variant="outlined"
+                          disabled={savingAddress || openingAddressSearch}
+                          sx={{ alignSelf: 'flex-start' }}
+                        >
                           {savingAddress ? '저장 중...' : '배송지 저장'}
                         </Button>
                       </Stack>

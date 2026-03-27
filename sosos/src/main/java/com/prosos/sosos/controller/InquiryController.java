@@ -7,6 +7,7 @@ import com.prosos.sosos.model.User;
 import com.prosos.sosos.repository.InquiryRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.UserRepository;
+import com.prosos.sosos.service.NotificationService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,15 +25,18 @@ public class InquiryController {
     private final InquiryRepository inquiryRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final NotificationService notificationService;
 
     public InquiryController(
             InquiryRepository inquiryRepository,
             UserRepository userRepository,
-            ProductRepository productRepository
+            ProductRepository productRepository,
+            NotificationService notificationService
     ) {
         this.inquiryRepository = inquiryRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -96,10 +100,12 @@ public class InquiryController {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new IllegalArgumentException("문의 ID를 찾을 수 없습니다."));
 
+        boolean existedAnswer = inquiry.getAnswer() != null && !inquiry.getAnswer().trim().isEmpty();
         inquiry.setAnswer(answer);
         inquiry.setSellerName("SOS 운영팀");
         inquiry.setAnsweredDate(LocalDateTime.now());
         inquiryRepository.save(inquiry);
+        notificationService.notifyInquiryAnswered(inquiry, existedAnswer);
         return ResponseEntity.ok().build();
     }
 
@@ -144,6 +150,7 @@ public class InquiryController {
         inquiry.setAnswer(newAnswer);
         inquiry.setAnsweredDate(LocalDateTime.now());
         inquiryRepository.save(inquiry);
+        notificationService.notifyInquiryAnswered(inquiry, true);
         return ResponseEntity.ok().build();
     }
 }

@@ -9,6 +9,8 @@ public class UserSessionDto {
     private Long id;
     private String name;
     private String email;
+    private String phone;
+    private String address;
     private String businessNumber;
 
     public UserSessionDto() {
@@ -20,6 +22,8 @@ public class UserSessionDto {
         dto.setId(user.getId());
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setAddress(user.getAddress());
         return dto;
     }
 
@@ -70,5 +74,21 @@ public class UserSessionDto {
 
     public void setBusinessNumber(String businessNumber) {
         this.businessNumber = businessNumber;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 }

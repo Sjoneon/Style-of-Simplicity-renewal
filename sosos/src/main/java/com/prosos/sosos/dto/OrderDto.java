@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public class OrderDto {
 
     private Long id;
+    private Long productId;
     private String productName;
     private BigDecimal totalAmount;
     private LocalDateTime orderDate;
@@ -20,6 +21,7 @@ public class OrderDto {
 
     public OrderDto(Order order) {
         this.id = order.getId();
+        this.productId = order.getProduct().getId();
         this.productName = order.getProduct().getName();
         this.totalAmount = order.getTotalAmount();
         this.orderDate = order.getOrderDate();
@@ -34,6 +36,14 @@ public class OrderDto {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getProductId() {
+        return productId;
+    }
+
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
     public String getProductName() {

@@ -6,17 +6,21 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   Paper,
   Snackbar,
   Stack,
   Typography,
 } from '@mui/material'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import LoginPromptDialog from '../components/LoginPromptDialog'
 import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
 import { purchaseProduct } from '../services/orderApi'
 import { addProductToCart, fetchProductById } from '../services/productApi'
+import { fetchWishlistStatus, toggleWishlist } from '../services/wishlistApi'
 import resolveImageUrl from '../utils/resolveImageUrl'
 
 function ProductDetailPage() {
@@ -32,6 +36,8 @@ function ProductDetailPage() {
   const [toastMessage, setToastMessage] = useState('')
   const [loginPromptOpen, setLoginPromptOpen] = useState(false)
   const [selectedOptionId, setSelectedOptionId] = useState('')
+  const [wishlistSelected, setWishlistSelected] = useState(false)
+  const [wishlistLoading, setWishlistLoading] = useState(false)
 
   const loadProduct = useCallback(async () => {
     if (!productId) {
@@ -57,6 +63,39 @@ function ProductDetailPage() {
   useEffect(() => {
     loadProduct()
   }, [loadProduct])
+
+  useEffect(() => {
+    let active = true
+
+    const loadWishlistStatus = async () => {
+      if (!product?.id || !user || user.userType !== 'user') {
+        setWishlistSelected(false)
+        setWishlistLoading(false)
+        return
+      }
+
+      setWishlistLoading(true)
+      try {
+        const response = await fetchWishlistStatus(product.id)
+        if (active) {
+          setWishlistSelected(Boolean(response.data))
+        }
+      } catch (err) {
+        if (active && err?.response?.status !== 401) {
+          setError(getApiErrorMessage(err, '찜 상태를 불러오지 못했습니다.'))
+        }
+      } finally {
+        if (active) {
+          setWishlistLoading(false)
+        }
+      }
+    }
+
+    loadWishlistStatus()
+    return () => {
+      active = false
+    }
+  }, [product?.id, user, user?.id, user?.userType])
 
   const moveToLogin = () => {
     setLoginPromptOpen(false)
@@ -162,6 +201,40 @@ function ProductDetailPage() {
     navigate(`/support?${params.toString()}`)
   }
 
+  const handleToggleWishlist = async () => {
+    if (!product?.id) {
+      return
+    }
+
+    if (!user) {
+      handleRequireLogin()
+      return
+    }
+
+    if (user.userType !== 'user') {
+      setToastMessage('일반 사용자 계정에서만 찜 기능을 사용할 수 있습니다.')
+      return
+    }
+
+    const nextValue = !wishlistSelected
+    setWishlistLoading(true)
+    setError('')
+
+    try {
+      const response = await toggleWishlist(product.id, nextValue)
+      setWishlistSelected(Boolean(response.data))
+      setToastMessage(response.message || (nextValue ? '찜에 추가했습니다.' : '찜에서 제거했습니다.'))
+    } catch (err) {
+      if (err?.response?.status === 401) {
+        handleRequireLogin()
+        return
+      }
+      setError(getApiErrorMessage(err, '찜 처리에 실패했습니다.'))
+    } finally {
+      setWishlistLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <Stack alignItems="center" sx={{ py: 8 }}>
@@ -222,9 +295,19 @@ function ProductDetailPage() {
               <Typography variant="h4" fontWeight={800}>
                 {product.name}
               </Typography>
-              <Button variant="text" size="small" onClick={handleMoveSupport} sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
-                상품 문의
-              </Button>
+              <Stack direction="row" spacing={0.8}>
+                <Button variant="text" size="small" onClick={handleMoveSupport} sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
+                  상품 문의
+                </Button>
+                <IconButton
+                  size="small"
+                  onClick={handleToggleWishlist}
+                  disabled={wishlistLoading}
+                  sx={{ color: wishlistSelected ? 'error.main' : 'text.secondary' }}
+                >
+                  {wishlistSelected ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+                </IconButton>
+              </Stack>
             </Stack>
             <Typography variant="body2" color="text.secondary">
               카테고리: {product.category || '미분류'}
