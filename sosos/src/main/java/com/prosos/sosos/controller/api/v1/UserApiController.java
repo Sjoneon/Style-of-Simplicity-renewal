@@ -1,6 +1,7 @@
 package com.prosos.sosos.controller.api.v1;
 
 import com.prosos.sosos.dto.ApiResponse;
+import com.prosos.sosos.dto.RecentProductViewDto;
 import com.prosos.sosos.dto.UserAddressUpdateRequest;
 import com.prosos.sosos.dto.UserLoginApiRequest;
 import com.prosos.sosos.dto.UserPasswordChangeRequest;
@@ -9,6 +10,7 @@ import com.prosos.sosos.dto.UserRegistrationRequest;
 import com.prosos.sosos.dto.UserSessionDto;
 import com.prosos.sosos.model.Seller;
 import com.prosos.sosos.model.User;
+import com.prosos.sosos.service.RecentProductViewService;
 import com.prosos.sosos.service.SellerService;
 import com.prosos.sosos.service.UserService;
 import jakarta.servlet.http.HttpSession;
@@ -22,16 +24,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserApiController {
 
     private final UserService userService;
     private final SellerService sellerService;
+    private final RecentProductViewService recentProductViewService;
 
-    public UserApiController(UserService userService, SellerService sellerService) {
+    public UserApiController(
+            UserService userService,
+            SellerService sellerService,
+            RecentProductViewService recentProductViewService
+    ) {
         this.userService = userService;
         this.sellerService = sellerService;
+        this.recentProductViewService = recentProductViewService;
     }
 
     @PostMapping("/register")
@@ -117,6 +127,37 @@ public class UserApiController {
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.failure("로그인된 사용자가 없습니다."));
+    }
+
+    @GetMapping("/me/recent-products")
+    public ResponseEntity<ApiResponse<List<RecentProductViewDto>>> getMyRecentProducts(HttpSession session) {
+        User loggedInUser = resolveLoggedInUser(session);
+        if (loggedInUser == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.failure("?ъ슜??濡쒓렇?몄씠 ?꾩슂?⑸땲??"));
+        }
+
+        List<RecentProductViewDto> recentProducts = recentProductViewService.getMyRecentProducts(loggedInUser.getId());
+        return ResponseEntity.ok(ApiResponse.success(recentProducts, "珥쒓렐 蹂??곹뭹 議고쉶 ?깃났"));
+    }
+
+    @PostMapping("/me/recent-products/{productId}")
+    public ResponseEntity<ApiResponse<Void>> recordRecentProduct(
+            @PathVariable Long productId,
+            HttpSession session
+    ) {
+        try {
+            User loggedInUser = resolveLoggedInUser(session);
+            if (loggedInUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResponse.failure("?ъ슜??濡쒓렇?몄씠 ?꾩슂?⑸땲??"));
+            }
+
+            recentProductViewService.recordView(loggedInUser.getId(), productId);
+            return ResponseEntity.ok(ApiResponse.success(null, "珥쒓렐 蹂??곹뭹 湲곕줉 ?깃났"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
+        }
     }
 
     @PutMapping("/me/profile")
