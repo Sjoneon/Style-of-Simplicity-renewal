@@ -1,6 +1,7 @@
-﻿import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   AppBar,
+  Badge,
   Box,
   Button,
   CircularProgress,
@@ -13,16 +14,65 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
 import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined'
 import { Link as RouterLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { fetchMyNotificationSummary } from '../services/notificationApi'
 
 function AppLayout() {
   const navigate = useNavigate()
   const { user, authLoading, logout } = useAuth()
   const [loggingOut, setLoggingOut] = useState(false)
+  // 헤더 배지는 "읽지 않은 알림 수"만 표시한다.
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+
+  const loadNotificationSummary = useCallback(async () => {
+    if (user?.userType !== 'user' || !user?.id) {
+      setUnreadNotificationCount(0)
+      return
+    }
+
+    try {
+      const response = await fetchMyNotificationSummary()
+      const unread = Number(response?.data?.unread || 0)
+      setUnreadNotificationCount(unread > 0 ? unread : 0)
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        setUnreadNotificationCount(0)
+        return
+      }
+      console.error('Failed to load notification summary', error)
+    }
+  }, [user?.id, user?.userType])
+
+  useEffect(() => {
+    loadNotificationSummary()
+
+    // 알림 페이지에서 읽음 처리가 발생하면 이 이벤트로 헤더 배지를 즉시 동기화한다.
+    const onSummaryRefresh = () => {
+      loadNotificationSummary()
+    }
+    window.addEventListener('sosos:notification-summary-refresh', onSummaryRefresh)
+
+    if (user?.userType !== 'user' || !user?.id) {
+      return () => {
+        window.removeEventListener('sosos:notification-summary-refresh', onSummaryRefresh)
+      }
+    }
+
+    const intervalId = window.setInterval(() => {
+      // 페이지 이동 없이도 숫자가 바뀌도록 주기 조회한다.
+      loadNotificationSummary()
+    }, 30000)
+
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('sosos:notification-summary-refresh', onSummaryRefresh)
+    }
+  }, [loadNotificationSummary, user?.id, user?.userType])
 
   const handleLogout = async () => {
     setLoggingOut(true)
     try {
       await logout()
+      setUnreadNotificationCount(0)
       navigate('/')
     } finally {
       setLoggingOut(false)
@@ -70,7 +120,11 @@ function AppLayout() {
               마이페이지
             </Button>
             <Button component={RouterLink} to="/notifications" color="inherit">
-              알림
+              <Badge color="error" badgeContent={unreadNotificationCount} max={99}>
+                <Box component="span" sx={{ pr: unreadNotificationCount > 0 ? 0.8 : 0 }}>
+                  알림
+                </Box>
+              </Badge>
             </Button>
             {user?.userType === 'seller' && (
               <Button component={RouterLink} to="/admin/dashboard" color="inherit">
