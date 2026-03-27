@@ -144,15 +144,23 @@ function NotificationsPage() {
     [moveToLogin, refreshSession],
   )
 
-  const loadNotifications = useCallback(async () => {
+  const emitSummaryRefresh = useCallback(() => {
+    // 헤더(AppLayout) 배지와 현재 페이지 요약을 같은 타이밍에 맞춘다.
+    window.dispatchEvent(new Event('sosos:notification-summary-refresh'))
+  }, [])
+
+  const loadNotifications = useCallback(async ({ silent = false } = {}) => {
     if (!canUseNotifications || !user?.id) {
       setNotifications([])
       setSummary(EMPTY_SUMMARY)
+      emitSummaryRefresh()
       return
     }
 
-    setLoading(true)
-    setError('')
+    if (!silent) {
+      setLoading(true)
+      setError('')
+    }
 
     try {
       const [notificationsResponse, summaryResponse] = await Promise.all([
@@ -164,19 +172,37 @@ function NotificationsPage() {
         : []
       setNotifications(nextNotifications)
       setSummary(normalizeSummary(summaryResponse?.data, nextNotifications))
+      emitSummaryRefresh()
     } catch (err) {
       if (!(await handleUnauthorized(err))) {
         setError(getApiErrorMessage(err, '알림을 불러오지 못했습니다.'))
       }
     } finally {
-      setLoading(false)
+      if (!silent) {
+        setLoading(false)
+      }
     }
-  }, [canUseNotifications, handleUnauthorized, user?.id])
+  }, [canUseNotifications, emitSummaryRefresh, handleUnauthorized, user?.id])
 
   useEffect(() => {
     setFilter(NOTIFICATION_TYPES.ALL)
     loadNotifications()
   }, [loadNotifications])
+
+  useEffect(() => {
+    if (!canUseNotifications || !user?.id) {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      // 폴링 중에는 로딩 스피너를 띄우지 않아 화면 깜빡임을 방지한다.
+      loadNotifications({ silent: true })
+    }, 30000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [canUseNotifications, loadNotifications, user?.id])
 
   const visibleNotifications = useMemo(() => {
     if (filter === NOTIFICATION_TYPES.ALL) {
@@ -208,6 +234,7 @@ function NotificationsPage() {
         ...previous,
         unread: Math.max(Number(previous.unread || 0) - 1, 0),
       }))
+      emitSummaryRefresh()
     } catch (err) {
       if (!(await handleUnauthorized(err))) {
         setError(getApiErrorMessage(err, '알림 읽음 처리에 실패했습니다.'))
@@ -233,6 +260,7 @@ function NotificationsPage() {
         ...previous,
         unread: 0,
       }))
+      emitSummaryRefresh()
     } catch (err) {
       if (!(await handleUnauthorized(err))) {
         setError(getApiErrorMessage(err, '전체 읽음 처리에 실패했습니다.'))
@@ -263,7 +291,7 @@ function NotificationsPage() {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="h5" fontWeight={800}>알림</Typography>
             {canUseNotifications && (
-              <Button variant="text" onClick={loadNotifications} disabled={loading} sx={{ px: 0 }}>
+              <Button variant="text" onClick={() => loadNotifications()} disabled={loading} sx={{ px: 0 }}>
                 새로고침
               </Button>
             )}
