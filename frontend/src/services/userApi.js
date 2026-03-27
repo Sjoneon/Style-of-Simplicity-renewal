@@ -16,6 +16,14 @@ export async function logoutUser() {
   return ensureApiSuccess(await api.post('/api/v1/users/logout'))
 }
 
+export async function fetchMyRecentProducts() {
+  return ensureApiSuccess(await api.get('/api/v1/users/me/recent-products'))
+}
+
+export async function recordRecentProductView(productId) {
+  return ensureApiSuccess(await api.post(`/api/v1/users/me/recent-products/${productId}`))
+}
+
 export async function updateMyProfile(payload) {
   return ensureApiSuccess(await api.put('/api/v1/users/me/profile', payload))
 }
