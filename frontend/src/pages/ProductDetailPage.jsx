@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
 import { purchaseProduct } from '../services/orderApi'
 import { addProductToCart, fetchProductById } from '../services/productApi'
+import { recordRecentProductView } from '../services/userApi'
 import { fetchWishlistStatus, toggleWishlist } from '../services/wishlistApi'
 import resolveImageUrl from '../utils/resolveImageUrl'
 
@@ -96,6 +97,30 @@ function ProductDetailPage() {
       active = false
     }
   }, [product?.id, user, user?.id, user?.userType])
+
+  useEffect(() => {
+    let active = true
+
+    const recordView = async () => {
+      if (!product?.id || user?.userType !== 'user') {
+        return
+      }
+
+      try {
+        await recordRecentProductView(product.id)
+      } catch (err) {
+        if (active && err?.response?.status !== 401) {
+          // Keep product detail UX unaffected even if view logging fails.
+          console.debug('Failed to record recent product view', err)
+        }
+      }
+    }
+
+    recordView()
+    return () => {
+      active = false
+    }
+  }, [product?.id, user?.id, user?.userType])
 
   const moveToLogin = () => {
     setLoginPromptOpen(false)
