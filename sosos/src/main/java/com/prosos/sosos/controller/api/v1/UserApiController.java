@@ -134,11 +134,11 @@ public class UserApiController {
         User loggedInUser = resolveLoggedInUser(session);
         if (loggedInUser == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(ApiResponse.failure("?ъ슜??濡쒓렇?몄씠 ?꾩슂?⑸땲??"));
+                    .body(ApiResponse.failure("사용자 로그인이 필요합니다."));
         }
 
         List<RecentProductViewDto> recentProducts = recentProductViewService.getMyRecentProducts(loggedInUser.getId());
-        return ResponseEntity.ok(ApiResponse.success(recentProducts, "珥쒓렐 蹂??곹뭹 議고쉶 ?깃났"));
+        return ResponseEntity.ok(ApiResponse.success(recentProducts, "최근 본 상품 조회 성공"));
     }
 
     @PostMapping("/me/recent-products/{productId}")
@@ -150,11 +150,11 @@ public class UserApiController {
             User loggedInUser = resolveLoggedInUser(session);
             if (loggedInUser == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(ApiResponse.failure("?ъ슜??濡쒓렇?몄씠 ?꾩슂?⑸땲??"));
+                        .body(ApiResponse.failure("사용자 로그인이 필요합니다."));
             }
 
             recentProductViewService.recordView(loggedInUser.getId(), productId);
-            return ResponseEntity.ok(ApiResponse.success(null, "珥쒓렐 蹂??곹뭹 湲곕줉 ?깃났"));
+            return ResponseEntity.ok(ApiResponse.success(null, "최근 본 상품 기록 성공"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(ApiResponse.failure(e.getMessage()));
         }
