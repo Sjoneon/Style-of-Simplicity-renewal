@@ -6,18 +6,13 @@ import com.prosos.sosos.model.Seller;
 import com.prosos.sosos.repository.MainBannerRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.SellerRepository;
-import org.springframework.beans.factory.annotation.Value;
+import com.prosos.sosos.service.storage.FileStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 public class MainBannerService {
@@ -25,20 +20,18 @@ public class MainBannerService {
     private final MainBannerRepository mainBannerRepository;
     private final SellerRepository sellerRepository;
     private final ProductRepository productRepository;
-    private final Path bannerUploadPath;
+    private final FileStorageService fileStorageService;
 
     public MainBannerService(
             MainBannerRepository mainBannerRepository,
             SellerRepository sellerRepository,
             ProductRepository productRepository,
-            @Value("${app.upload.base-dir:uploads}") String uploadBaseDir
+            FileStorageService fileStorageService
     ) {
         this.mainBannerRepository = mainBannerRepository;
         this.sellerRepository = sellerRepository;
         this.productRepository = productRepository;
-
-        String normalizedBaseDir = (uploadBaseDir == null || uploadBaseDir.isBlank()) ? "uploads" : uploadBaseDir;
-        this.bannerUploadPath = Paths.get(normalizedBaseDir).toAbsolutePath().normalize().resolve("banners");
+        this.fileStorageService = fileStorageService;
     }
 
     public List<MainBannerDto> getActiveBanners() {
@@ -109,18 +102,6 @@ public class MainBannerService {
     }
 
     private String saveBannerImageFile(MultipartFile imageFile) {
-        try {
-            Files.createDirectories(bannerUploadPath);
-
-            String originalName = imageFile.getOriginalFilename();
-            String safeOriginalName = (originalName == null || originalName.isBlank()) ? "main-banner" : originalName;
-            String uniqueFileName = UUID.randomUUID() + "_" + safeOriginalName;
-            Path targetPath = bannerUploadPath.resolve(uniqueFileName).normalize();
-
-            imageFile.transferTo(targetPath.toFile());
-            return "/images/banners/" + uniqueFileName;
-        } catch (IOException e) {
-            throw new RuntimeException("배너 이미지 저장 중 오류가 발생했습니다.", e);
-        }
+        return fileStorageService.upload(imageFile, "banners", "main-banner");
     }
 }

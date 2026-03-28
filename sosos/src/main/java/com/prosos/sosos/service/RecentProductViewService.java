@@ -32,7 +32,7 @@ public class RecentProductViewService {
 
     @Transactional(readOnly = true)
     public List<RecentProductViewDto> getMyRecentProducts(Long userId) {
-        // 마이페이지 노출 범위만 고려해 최근 20건으로 제한한다.
+        // 마이페이지 노출 범위 기준 최근 본 20건 조회
         return recentProductViewRepository.findTop20ByUserIdOrderByViewedAtDesc(userId)
                 .stream()
                 .map(RecentProductViewDto::new)
@@ -49,14 +49,14 @@ public class RecentProductViewService {
         RecentProductView recentProductView = recentProductViewRepository
                 .findByUserIdAndProductId(userId, productId)
                 .orElseGet(() -> {
-                    // 같은 사용자-상품 조합이 없을 때만 새 레코드를 만든다.
+                    // 사용자-상품 조합 미존재 시 신규 레코드 생성
                     RecentProductView created = new RecentProductView();
                     created.setUser(user);
                     created.setProduct(product);
                     return created;
                 });
 
-        // 기존 레코드가 있으면 조회 시각만 갱신해 "최근순" 정렬을 유지한다.
+        // 기존 레코드 조회 시각만 갱신, 최근순 정렬 유지
         recentProductView.setViewedAt(LocalDateTime.now());
         recentProductViewRepository.save(recentProductView);
     }

@@ -13,24 +13,20 @@ import com.prosos.sosos.repository.KeywordRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.ProductOptionRepository;
 import com.prosos.sosos.repository.SellerRepository;
+import com.prosos.sosos.service.storage.FileStorageService;
 
 import jakarta.servlet.http.HttpSession;
 
 import com.prosos.sosos.repository.InquiryRepository;
 import com.prosos.sosos.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 public class SellerService {
@@ -52,8 +47,7 @@ public class SellerService {
     private final KeywordRepository keywordRepository;
     private final NotificationService notificationService;
     private final PasswordEncoder passwordEncoder;
-    private final Path uploadRootPath;
-    private final Path descriptionUploadPath;
+    private final FileStorageService fileStorageService;
     private static final Set<String> EXCLUDED_RANKING_STATUSES = Set.of("CANCELLED", "RETURNED");
 
     @Autowired
@@ -61,8 +55,7 @@ public class SellerService {
                          ProductOptionRepository productOptionRepository,
                          OrderRepository orderRepository, InquiryRepository inquiryRepository,
                          KeywordRepository keywordRepository, NotificationService notificationService,
-                         PasswordEncoder passwordEncoder,
-                         @Value("${app.upload.base-dir:uploads}") String uploadBaseDir) {
+                         PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.sellerRepository = sellerRepository;
         this.productRepository = productRepository;
         this.productOptionRepository = productOptionRepository;
@@ -71,9 +64,7 @@ public class SellerService {
         this.keywordRepository = keywordRepository;
         this.notificationService = notificationService;
         this.passwordEncoder = passwordEncoder;
-        String normalizedBaseDir = (uploadBaseDir == null || uploadBaseDir.isBlank()) ? "uploads" : uploadBaseDir;
-        this.uploadRootPath = Paths.get(normalizedBaseDir).toAbsolutePath().normalize();
-        this.descriptionUploadPath = this.uploadRootPath.resolve("description");
+        this.fileStorageService = fileStorageService;
     }
 
     // 1.1.1 판매자 회원가입
@@ -325,41 +316,15 @@ public class SellerService {
 
     // 상세 설명 이미지 저장
     public String saveDescriptionImage(MultipartFile descriptionImageFile) {
-        try {
-            Files.createDirectories(descriptionUploadPath);
-
-            String originalName = descriptionImageFile.getOriginalFilename();
-            String safeOriginalName = (originalName == null || originalName.isBlank()) ? "description-image" : originalName;
-            String uniqueFileName = UUID.randomUUID() + "_" + safeOriginalName;
-            Path targetPath = descriptionUploadPath.resolve(uniqueFileName).normalize();
-
-            descriptionImageFile.transferTo(targetPath.toFile());
-            return "/images/description/" + uniqueFileName;
-        } catch (IOException e) {
-            throw new RuntimeException("상세 설명 이미지 저장 실패", e);
-        }
+        return fileStorageService.upload(descriptionImageFile, "description", "description-image");
     }
-
 
 
     // 대표 상품 이미지 저장
     private String saveImageFile(MultipartFile imageFile) {
-        try {
-            Files.createDirectories(uploadRootPath);
-
-            String originalName = imageFile.getOriginalFilename();
-            String safeOriginalName = (originalName == null || originalName.isBlank()) ? "product-image" : originalName;
-            String uniqueFileName = UUID.randomUUID() + "_" + safeOriginalName;
-            Path targetPath = uploadRootPath.resolve(uniqueFileName).normalize();
-
-            imageFile.transferTo(targetPath.toFile());
-            return "/images/" + uniqueFileName;
-        } catch (IOException e) {
-            throw new RuntimeException("대표 이미지 저장 실패", e);
-        }
+        return fileStorageService.upload(imageFile, "", "product-image");
     }
-    
-    
+
 
     // 1.2.3 상품 삭제
     public void deleteProduct(Long productId) {

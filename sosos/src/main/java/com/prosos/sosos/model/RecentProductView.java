@@ -15,7 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 
 import java.time.LocalDateTime;
 
-// 사용자-상품 조합을 1건만 유지하고, 마지막 조회 시각(viewedAt)만 갱신해 "최근 본 순서"를 관리한다.
+// 사용자-상품 조합 1건 유지, 마지막 조회 시각 갱신, 최근 본 순서 관리
 @Entity
 @Table(
         name = "recent_product_views",
@@ -28,29 +28,29 @@ import java.time.LocalDateTime;
 )
 public class RecentProductView {
 
-    // PK는 DB BIGINT와 맞추기 위해 Long을 사용한다. (JPA 식별자 기본 관례)
+    // PK 타입 Long, DB BIGINT 매핑
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "recent_view_id")
     private Long id;
 
-    // 목록 조회 시 연관 엔티티 전체를 즉시 로딩하지 않기 위해 LAZY를 사용한다.
+    // 연관 엔티티 지연 로딩 LAZY, 목록 조회 성능 부담 감소
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // 최근 본 목록 정렬/필터에서 상품 정보가 필요해 연관관계로 관리한다.
+    // 최근 본 목록 정렬/필터용 상품 연관관계
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    // DATETIME 컬럼과 1:1 대응되고, "최근 순 정렬" 목적이라 타임존 정보가 없는 LocalDateTime을 사용한다.
+    // DATETIME 매핑용 조회 시각 타입 LocalDateTime
     @Column(name = "viewed_at", nullable = false)
     private LocalDateTime viewedAt;
 
     @PrePersist
     protected void onCreate() {
-        // 저장 시점 기본값을 채워 null 정렬 이슈를 방지한다.
+        // 저장 시점 기본값 세팅, null 정렬 이슈 방지
         if (viewedAt == null) {
             viewedAt = LocalDateTime.now();
         }

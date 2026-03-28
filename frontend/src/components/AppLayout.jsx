@@ -20,7 +20,7 @@ function AppLayout() {
   const navigate = useNavigate()
   const { user, authLoading, logout } = useAuth()
   const [loggingOut, setLoggingOut] = useState(false)
-  // 헤더 배지는 "읽지 않은 알림 수"만 표시한다.
+  // 헤더 미읽음 알림 수 배지 상태
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
 
   const loadNotificationSummary = useCallback(async () => {
@@ -45,7 +45,7 @@ function AppLayout() {
   useEffect(() => {
     loadNotificationSummary()
 
-    // 알림 페이지에서 읽음 처리가 발생하면 이 이벤트로 헤더 배지를 즉시 동기화한다.
+    // 알림 페이지 읽음 처리 후 헤더 배지 동기화 이벤트
     const onSummaryRefresh = () => {
       loadNotificationSummary()
     }
@@ -58,7 +58,7 @@ function AppLayout() {
     }
 
     const intervalId = window.setInterval(() => {
-      // 페이지 이동 없이도 숫자가 바뀌도록 주기 조회한다.
+      // 주기 조회 30초, 페이지 이동 없이 배지 갱신
       loadNotificationSummary()
     }, 30000)
 

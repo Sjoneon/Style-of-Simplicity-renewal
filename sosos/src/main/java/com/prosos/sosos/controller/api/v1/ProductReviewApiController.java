@@ -28,7 +28,7 @@ public class ProductReviewApiController {
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<List<ProductReviewDto>>> getMyReviews(HttpSession session) {
-        // 세션 기반으로 "내 리뷰"만 조회한다.
+        // 세션 사용자 기준 내 리뷰 목록 조회
         User user = resolveLoggedInUser(session);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -44,7 +44,7 @@ public class ProductReviewApiController {
             @RequestBody ProductReviewCreateRequest request,
             HttpSession session
     ) {
-        // 리뷰 등록도 본인 계정 세션에서만 허용한다.
+        // 세션 사용자 기준 리뷰 등록 허용
         User user = resolveLoggedInUser(session);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

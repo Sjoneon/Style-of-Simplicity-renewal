@@ -14,7 +14,7 @@ import java.util.List;
 @Service
 public class ProductReviewService {
 
-    // 과도한 본문 입력으로 인한 저장/렌더링 부담을 줄이기 위한 상한값.
+    // 리뷰 본문 최대 길이 1000자 제한값
     private static final int REVIEW_CONTENT_MAX_LENGTH = 1000;
 
     private final ProductReviewRepository productReviewRepository;
@@ -30,7 +30,7 @@ public class ProductReviewService {
 
     @Transactional(readOnly = true)
     public List<ProductReviewDto> getMyReviews(Long userId) {
-        // 목록 조회만 수행하므로 readOnly 트랜잭션으로 변경 추적 부담을 줄인다.
+        // 조회 전용 readOnly 트랜잭션, 변경 추적 부담 감소
         return productReviewRepository.findByUser_IdOrderByCreatedAtDesc(userId)
                 .stream()
                 .map(ProductReviewDto::new)
@@ -60,7 +60,7 @@ public class ProductReviewService {
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
 
-        // 세션 사용자(userId)와 주문 구매자 ID를 비교해 권한을 강제한다.
+        // 세션 사용자 ID 와 주문 구매자 ID 일치 여부 권한 검증
         if (order.getBuyer() == null || !userId.equals(order.getBuyer().getId())) {
             throw new IllegalArgumentException("본인 주문에 대해서만 리뷰를 작성할 수 있습니다.");
         }
@@ -71,7 +71,7 @@ public class ProductReviewService {
         }
 
         boolean alreadyReviewed = productReviewRepository.existsByUser_IdAndOrder_Id(userId, request.getOrderId());
-        // 중복 작성은 DB Unique 제약 전에 서비스 단에서 먼저 차단한다.
+        // DB Unique 제약 전 서비스 레벨 중복 작성 차단
         if (alreadyReviewed) {
             throw new IllegalArgumentException("이미 리뷰를 작성한 주문입니다.");
         }

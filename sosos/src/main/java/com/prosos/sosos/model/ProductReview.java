@@ -15,7 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 
 import java.time.LocalDateTime;
 
-// 리뷰는 "누가(User) 어떤 주문(Order)으로 어떤 상품(Product)을 평가했는지"를 함께 보존한다.
+// 리뷰 데이터: 사용자, 주문, 상품 기준 이력 보존
 @Entity
 @Table(
         name = "product_reviews",
@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 )
 public class ProductReview {
 
-    // DB BIGINT PK와 맞추기 위해 Long 식별자를 사용한다.
+    // PK 타입 Long, DB BIGINT 매핑
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "review_id")
@@ -47,14 +47,14 @@ public class ProductReview {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    // Integer를 사용해 null 검증(누락)과 점수값(1~5) 검증을 분리한다.
+    // 평점 타입 Integer, 값 누락 null 과 1~5 점수 구분
     @Column(name = "rating", nullable = false)
     private Integer rating;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
-    // DB DATETIME과 자연스럽게 매핑되고 정렬/표시 용도로 충분해 LocalDateTime을 사용한다.
+    // 생성/수정 시각 타입 LocalDateTime, DATETIME 매핑
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -63,7 +63,7 @@ public class ProductReview {
 
     @PrePersist
     protected void onCreate() {
-        // 생성/수정 시각을 동일하게 세팅해 최초 저장 이력을 일관되게 남긴다.
+        // 최초 저장 시 createdAt, updatedAt 동시 세팅
         LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) {
             createdAt = now;
@@ -75,7 +75,7 @@ public class ProductReview {
 
     @PreUpdate
     protected void onUpdate() {
-        // 수정 시점만 갱신한다.
+        // 수정 시점 updatedAt 갱신
         updatedAt = LocalDateTime.now();
     }
 

@@ -13,7 +13,7 @@ public class ProductReviewDto {
     private String productImageUrl;
     private Integer rating;
     private String content;
-    // 프론트 정렬/표시용 시각 값.
+    // 프론트 정렬/표시용 생성 시각 필드
     private LocalDateTime createdDate;
 
     public ProductReviewDto() {

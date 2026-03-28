@@ -145,7 +145,7 @@ function NotificationsPage() {
   )
 
   const emitSummaryRefresh = useCallback(() => {
-    // 헤더(AppLayout) 배지와 현재 페이지 요약을 같은 타이밍에 맞춘다.
+    // 헤더 배지와 알림 페이지 요약 동기화 이벤트
     window.dispatchEvent(new Event('sosos:notification-summary-refresh'))
   }, [])
 
@@ -195,7 +195,7 @@ function NotificationsPage() {
     }
 
     const intervalId = window.setInterval(() => {
-      // 폴링 중에는 로딩 스피너를 띄우지 않아 화면 깜빡임을 방지한다.
+      // silent 폴링, 로딩 스피너 미표시로 화면 깜빡임 완화
       loadNotifications({ silent: true })
     }, 30000)
 
