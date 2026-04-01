@@ -4,7 +4,6 @@
 - 사유: 정보처리기사 실기 준비
 - 중단 기간: 2026-04-01 ~ 2026-04-18
 - 재개 예정일: 2026-04-19
-- 상세 공지: [PROJECT-PAUSE-NOTICE.md](./PROJECT-PAUSE-NOTICE.md)
 
 ## 한 줄 목표
 기존 Spring Boot + Thymeleaf 기반 쇼핑몰을 React 프론트 + REST API 구조로 전환하고, AWS 배포 가능한 운영 형태까지 정리한다.  
