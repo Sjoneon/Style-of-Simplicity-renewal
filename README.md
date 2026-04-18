@@ -1,10 +1,5 @@
 # SOS 리뉴얼 (Style of Simplicity Renewal)
 
-## 프로젝트 임시중단 안내 (중요)
-- 사유: 정보처리기사 실기 준비
-- 중단 기간: 2026-04-01 ~ 2026-04-18
-- 재개 예정일: 2026-04-19
-
 ## 한 줄 목표
 기존 Spring Boot + Thymeleaf 기반 쇼핑몰을 React 프론트 + REST API 구조로 전환하고, AWS 배포 가능한 운영 형태까지 정리한다.  
 결제는 실제 PG 연동 전 단계(UI/주문 흐름 검증)까지를 범위로 한다.
@@ -46,3 +41,8 @@
 - Backend: Java 17, Spring Boot 3.3.5, Spring Data JPA, MySQL 8.0
 - Frontend: React 19, Vite 7, MUI 7, Axios
 - Infra(배포 목표): AWS EC2, RDS, S3, Docker
+
+## 특이 사항
+### 프로젝트 임시중단
+- 사유: 정보처리기사 실기 준비
+- 중단 기간: 2026-04-01 ~ 2026-04-18
