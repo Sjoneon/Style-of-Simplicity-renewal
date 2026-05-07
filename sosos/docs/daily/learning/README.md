@@ -10,7 +10,7 @@
 - 문서 언어: 한글 기본
 
 ## 현재 상태 (2026-05-07)
-- 전체 학습 문서: 99개
+- 전체 학습 문서: 100개
 - 누락 링크 점검: 완료
 
 ## 2026-02
@@ -119,5 +119,6 @@
 - [2026-05-02-product-keyword-koreanization-learning.md](./2026-05-02-product-keyword-koreanization-learning.md)
 - [2026-05-07-korean-garbled-recovery-seller-service-learning.md](./2026-05-07-korean-garbled-recovery-seller-service-learning.md)
 - [2026-05-07-jdk21-pom-sync-learning.md](./2026-05-07-jdk21-pom-sync-learning.md)
+- [2026-05-07-gemini-api-key-optional-prod-learning.md](./2026-05-07-gemini-api-key-optional-prod-learning.md)
 
 

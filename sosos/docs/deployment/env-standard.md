@@ -98,3 +98,20 @@ docker run --rm -p 8085:8085 \
   -e APP_STORAGE_S3_BUCKET=<bucket-name> \
   sosos-backend:latest
 ```
+
+## 프론트 도메인 임시 운영 가이드 (배포 순서)
+
+### 1) 지금(도메인 미구매/미연결 단계)
+- 프론트 주소를 임시 주소로 운영한다. (예: `http://<ec2-public-ip>:3000`, S3/CloudFront 기본 도메인)
+- `APP_CORS_ALLOWED_ORIGINS`에는 임시 프론트 주소만 넣는다.
+- 이 단계는 백엔드 API, 로그인, 업로드, 주문 흐름 검증용이다.
+
+### 2) 프론트 공개 직전(도메인 구매 후 DNS 연결 완료 시점)
+- 실제 도메인/서브도메인(예: `https://style-of-simplicity.com`)을 확정한다.
+- `APP_CORS_ALLOWED_ORIGINS`를 실제 도메인으로 교체한다.
+- 임시 주소 Origin은 제거한다. (보안상 권장)
+
+### 3) 전환 완료 체크
+- 프론트 실제 도메인에서 로그인/상품조회/이미지 업로드가 정상 동작한다.
+- 브라우저 콘솔에 CORS 에러가 없다.
+- 백엔드 로그에 Origin 차단 로그가 없다.
