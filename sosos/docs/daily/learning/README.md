@@ -1,0 +1,123 @@
+﻿# 공통 작업 학습 문서 인덱스
+
+## 목적
+- `docs/daily/learning/`의 학습 문서를 날짜/주제 기준으로 빠르게 찾기 위한 인덱스다.
+- 구현 전/후에 생성한 학습 문서가 누락되지 않도록 목록을 유지한다.
+
+## 정리 기준
+- 파일명 규칙: `YYYY-MM-DD-주제-learning.md`
+- 본문 필수 섹션: `무엇`, `왜`, `언제`, `어떻게`
+- 문서 언어: 한글 기본
+
+## 현재 상태 (2026-05-07)
+- 전체 학습 문서: 99개
+- 누락 링크 점검: 완료
+
+## 2026-02
+- [2026-02-15-api-boundary-prep-learning.md](./2026-02-15-api-boundary-prep-learning.md)
+- [2026-02-15-preflight-learning.md](./2026-02-15-preflight-learning.md)
+- [2026-02-19-api-boundary-learning.md](./2026-02-19-api-boundary-learning.md)
+- [2026-02-19-gitignore-security-learning.md](./2026-02-19-gitignore-security-learning.md)
+- [2026-02-22-order-inventory-learning.md](./2026-02-22-order-inventory-learning.md)
+- [2026-02-24-frontend-bootstrap-learning.md](./2026-02-24-frontend-bootstrap-learning.md)
+
+## 2026-03
+- [2026-03-03-admin-dashboard-entry-button-learning.md](./2026-03-03-admin-dashboard-entry-button-learning.md)
+- [2026-03-03-auth-separation-user-admin-learning.md](./2026-03-03-auth-separation-user-admin-learning.md)
+- [2026-03-03-core-screen-migration-learning.md](./2026-03-03-core-screen-migration-learning.md)
+- [2026-03-03-create-test-super-admin-learning.md](./2026-03-03-create-test-super-admin-learning.md)
+- [2026-03-03-edit-detail-image-button-learning.md](./2026-03-03-edit-detail-image-button-learning.md)
+- [2026-03-03-header-search-result-count-update-learning.md](./2026-03-03-header-search-result-count-update-learning.md)
+- [2026-03-03-home-bw-banner-search-learning.md](./2026-03-03-home-bw-banner-search-learning.md)
+- [2026-03-03-home-ux-baseline-plus-learning.md](./2026-03-03-home-ux-baseline-plus-learning.md)
+- [2026-03-03-main-banner-separate-upload-learning.md](./2026-03-03-main-banner-separate-upload-learning.md)
+- [2026-03-03-product-upload-path-fix-learning.md](./2026-03-03-product-upload-path-fix-learning.md)
+- [2026-03-03-search-sort-flow-update-learning.md](./2026-03-03-search-sort-flow-update-learning.md)
+- [2026-03-03-size-option-model-implementation-learning.md](./2026-03-03-size-option-model-implementation-learning.md)
+- [2026-03-03-soldout-ux-and-size-plan-learning.md](./2026-03-03-soldout-ux-and-size-plan-learning.md)
+- [2026-03-03-super-admin-only-access-learning.md](./2026-03-03-super-admin-only-access-learning.md)
+- [2026-03-03-super-admin-operations-dashboard-learning.md](./2026-03-03-super-admin-operations-dashboard-learning.md)
+- [2026-03-04-cart-price-delete-overlap-fix-learning.md](./2026-03-04-cart-price-delete-overlap-fix-learning.md)
+- [2026-03-04-cart-quantity-control-learning.md](./2026-03-04-cart-quantity-control-learning.md)
+- [2026-03-04-cart-quantity-toast-rerender-fix-learning.md](./2026-03-04-cart-quantity-toast-rerender-fix-learning.md)
+- [2026-03-04-discovery-tab-dynamic-management-learning.md](./2026-03-04-discovery-tab-dynamic-management-learning.md)
+- [2026-03-04-discovery-tab-order-normalize-learning.md](./2026-03-04-discovery-tab-order-normalize-learning.md)
+- [2026-03-04-discovery-tab-seller-control-and-ranking-learning.md](./2026-03-04-discovery-tab-seller-control-and-ranking-learning.md)
+- [2026-03-04-home-category-primary-filter-learning.md](./2026-03-04-home-category-primary-filter-learning.md)
+- [2026-03-07-auth-user-admin-entry-separation-learning.md](./2026-03-07-auth-user-admin-entry-separation-learning.md)
+- [2026-03-07-inquiry-per-account-clarity-learning.md](./2026-03-07-inquiry-per-account-clarity-learning.md)
+- [2026-03-07-inquiry-product-name-and-reset-learning.md](./2026-03-07-inquiry-product-name-and-reset-learning.md)
+- [2026-03-07-product-detail-inquiry-button-position-learning.md](./2026-03-07-product-detail-inquiry-button-position-learning.md)
+- [2026-03-07-readme-current-status-sync-learning.md](./2026-03-07-readme-current-status-sync-learning.md)
+- [2026-03-07-renewal-branding-text-fix-learning.md](./2026-03-07-renewal-branding-text-fix-learning.md)
+- [2026-03-07-study-md-organization-learning.md](./2026-03-07-study-md-organization-learning.md)
+- [2026-03-07-support-401-handling-learning.md](./2026-03-07-support-401-handling-learning.md)
+- [2026-03-07-support-flicker-loop-fix-learning.md](./2026-03-07-support-flicker-loop-fix-learning.md)
+- [2026-03-07-support-mvp-mainpage-style-learning.md](./2026-03-07-support-mvp-mainpage-style-learning.md)
+- [2026-03-07-support-product-link-and-validation-learning.md](./2026-03-07-support-product-link-and-validation-learning.md)
+- [2026-03-19-account-security-password-profile-api-learning.md](./2026-03-19-account-security-password-profile-api-learning.md)
+- [2026-03-19-address-session-dto-fix-learning.md](./2026-03-19-address-session-dto-fix-learning.md)
+- [2026-03-19-md-sync-cleanup-learning.md](./2026-03-19-md-sync-cleanup-learning.md)
+- [2026-03-19-mypage-accordion-structure-learning.md](./2026-03-19-mypage-accordion-structure-learning.md)
+- [2026-03-19-mypage-account-security-integration-learning.md](./2026-03-19-mypage-account-security-integration-learning.md)
+- [2026-03-19-mypage-address-section-split-learning.md](./2026-03-19-mypage-address-section-split-learning.md)
+- [2026-03-19-mypage-and-safe-run-guard-learning.md](./2026-03-19-mypage-and-safe-run-guard-learning.md)
+- [2026-03-19-mypage-five-section-learning.md](./2026-03-19-mypage-five-section-learning.md)
+- [2026-03-19-mypage-kakao-address-search-learning.md](./2026-03-19-mypage-kakao-address-search-learning.md)
+- [2026-03-19-mypage-minimal-visual-refresh-learning.md](./2026-03-19-mypage-minimal-visual-refresh-learning.md)
+- [2026-03-19-notifications-derived-alerts-learning.md](./2026-03-19-notifications-derived-alerts-learning.md)
+- [2026-03-19-sql-schema-gap-fix-learning.md](./2026-03-19-sql-schema-gap-fix-learning.md)
+- [2026-03-19-wishlist-mvp-learning.md](./2026-03-19-wishlist-mvp-learning.md)
+- [2026-03-27-image-file-storage-strategy-learning.md](./2026-03-27-image-file-storage-strategy-learning.md)
+- [2026-03-27-mypage-recent-view-integration-learning.md](./2026-03-27-mypage-recent-view-integration-learning.md)
+- [2026-03-27-mypage-review-notification-badge-learning.md](./2026-03-27-mypage-review-notification-badge-learning.md)
+- [2026-03-27-notification-server-model-learning.md](./2026-03-27-notification-server-model-learning.md)
+
+## 2026-04
+- [2026-04-30-ai-multiturn-natural-recommendation-learning.md](./2026-04-30-ai-multiturn-natural-recommendation-learning.md)
+- [2026-04-30-toss-test-key-checkout-flow-learning.md](./2026-04-30-toss-test-key-checkout-flow-learning.md)
+- [2026-04-30-mock-payment-dialog-security-learning.md](./2026-04-30-mock-payment-dialog-security-learning.md)
+- [2026-04-30-react-controller-domain-grouping.md](./2026-04-30-react-controller-domain-grouping.md)
+- [2026-04-30-home-mypage-modular-refactor-learning.md](./2026-04-30-home-mypage-modular-refactor-learning.md)
+- [2026-04-30-react-large-component-refactor-learning.md](./2026-04-30-react-large-component-refactor-learning.md)
+- [2026-04-30-java-korean-comment-expansion-learning.md](./2026-04-30-java-korean-comment-expansion-learning.md)
+- [2026-04-30-korean-encoding-guard-learning.md](./2026-04-30-korean-encoding-guard-learning.md)
+- [2026-04-30-korean-garbled-text-recovery-learning.md](./2026-04-30-korean-garbled-text-recovery-learning.md)
+- [2026-04-30-ai-combination-generalization-learning.md](./2026-04-30-ai-combination-generalization-learning.md)
+- [2026-04-30-ai-prompt-optimization-learning.md](./2026-04-30-ai-prompt-optimization-learning.md)
+- [2026-04-30-admin-api-security-hardening-learning.md](./2026-04-30-admin-api-security-hardening-learning.md)
+- [2026-04-30-inquiry-display-sequence-learning.md](./2026-04-30-inquiry-display-sequence-learning.md)
+- [2026-04-29-inquiry-category-image-upload-learning.md](./2026-04-29-inquiry-category-image-upload-learning.md)
+- [2026-04-29-size-option-visibility-fix-learning.md](./2026-04-29-size-option-visibility-fix-learning.md)
+- [2026-04-29-folder-product-reseed-learning.md](./2026-04-29-folder-product-reseed-learning.md)
+- [2026-04-29-korean-comment-style-alignment-learning.md](./2026-04-29-korean-comment-style-alignment-learning.md)
+- [2026-04-29-db-sale-wishlist-migration-learning.md](./2026-04-29-db-sale-wishlist-migration-learning.md)
+- [2026-04-29-product-list-density-and-preview-learning.md](./2026-04-29-product-list-density-and-preview-learning.md)
+- [2026-04-01-project-pause-notice-learning.md](./2026-04-01-project-pause-notice-learning.md)
+- [2026-04-28-seller-tab-separation-learning.md](./2026-04-28-seller-tab-separation-learning.md)
+- [2026-04-28-seller-product-modal-flow-learning.md](./2026-04-28-seller-product-modal-flow-learning.md)
+- [2026-04-28-home-banner-size-guide-learning.md](./2026-04-28-home-banner-size-guide-learning.md)
+- [2026-04-28-home-banner-refresh-flicker-learning.md](./2026-04-28-home-banner-refresh-flicker-learning.md)
+- [2026-04-28-ai-frustrated-repeat-response-learning.md](./2026-04-28-ai-frustrated-repeat-response-learning.md)
+- [2026-04-28-ai-comment-rationale-learning.md](./2026-04-28-ai-comment-rationale-learning.md)
+- [2026-04-28-ai-item-search-intent-learning.md](./2026-04-28-ai-item-search-intent-learning.md)
+- [2026-04-28-ai-short-sleeve-intent-learning.md](./2026-04-28-ai-short-sleeve-intent-learning.md)
+- [2026-04-28-ai-safety-guardrail-learning.md](./2026-04-28-ai-safety-guardrail-learning.md)
+- [2026-04-27-ai-mixed-category-intent-learning.md](./2026-04-27-ai-mixed-category-intent-learning.md)
+- [2026-04-27-ai-recommendation-intent-filter-learning.md](./2026-04-27-ai-recommendation-intent-filter-learning.md)
+- [2026-04-27-deploy-prep-and-env-guard-learning.md](./2026-04-27-deploy-prep-and-env-guard-learning.md)
+- [2026-04-27-test-product-seeding-learning.md](./2026-04-27-test-product-seeding-learning.md)
+- [2026-04-25-ai-chatbot-fashion-recommendation-learning.md](./2026-04-25-ai-chatbot-fashion-recommendation-learning.md)
+- [2026-04-25-ai-login-required-home-banner-remove-learning.md](./2026-04-25-ai-login-required-home-banner-remove-learning.md)
+- [2026-04-25-repository-comment-style-align-learning.md](./2026-04-25-repository-comment-style-align-learning.md)
+
+## 2026-05
+- [2026-05-01-ai-quality-followup-patch-learning.md](./2026-05-01-ai-quality-followup-patch-learning.md)
+- [2026-05-01-ai-season-override-followup-learning.md](./2026-05-01-ai-season-override-followup-learning.md)
+- [2026-05-01-ai-normal-user-and-free-tier-guard-learning.md](./2026-05-01-ai-normal-user-and-free-tier-guard-learning.md)
+- [2026-05-01-ai-two-stage-keyword-llm-learning.md](./2026-05-01-ai-two-stage-keyword-llm-learning.md)
+- [2026-05-02-product-keyword-koreanization-learning.md](./2026-05-02-product-keyword-koreanization-learning.md)
+- [2026-05-07-korean-garbled-recovery-seller-service-learning.md](./2026-05-07-korean-garbled-recovery-seller-service-learning.md)
+- [2026-05-07-jdk21-pom-sync-learning.md](./2026-05-07-jdk21-pom-sync-learning.md)
+
+

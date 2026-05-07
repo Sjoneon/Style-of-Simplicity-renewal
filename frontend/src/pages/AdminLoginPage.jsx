@@ -55,12 +55,12 @@ function AdminLoginPage() {
       const session = await login(form)
       if (session?.userType !== 'seller') {
         await logout()
-        setError('슈퍼관리자 계정만 관리자 페이지에 접근할 수 있습니다.')
+        setError('판매자 계정만 판매자 대시보드에 접근할 수 있습니다.')
         return
       }
       navigate(nextPath, { replace: true })
     } catch (err) {
-      setError(getApiErrorMessage(err, '관리자 로그인 처리에 실패했습니다.'))
+      setError(getApiErrorMessage(err, '판매자 로그인 처리에 실패했습니다.'))
     } finally {
       setSubmitting(false)
     }
@@ -72,13 +72,13 @@ function AdminLoginPage() {
         <Paper sx={{ width: '100%', maxWidth: 560, p: 2.5, borderRadius: 3 }}>
           <Stack spacing={1.4}>
             <Typography variant="h5" fontWeight={800}>
-              관리자 로그인
+              판매자 로그인
             </Typography>
             <Alert severity="warning">
-              현재 일반 사용자 계정으로 로그인되어 있습니다. 슈퍼관리자 로그인은 로그아웃 후 가능합니다.
+              현재 일반 사용자 계정으로 로그인되어 있습니다. 판매자 로그인은 로그아웃 후 가능합니다.
             </Alert>
             <Button variant="contained" onClick={handleLogoutAndRetry} disabled={logoutLoading}>
-              로그아웃 후 관리자 로그인
+              로그아웃 후 판매자 로그인
             </Button>
           </Stack>
         </Paper>
@@ -90,10 +90,10 @@ function AdminLoginPage() {
     <Stack spacing={2.2} sx={{ alignItems: 'center' }}>
       <Stack spacing={0.7} sx={{ width: '100%', maxWidth: 560 }}>
         <Typography variant="h4" fontWeight={800}>
-          슈퍼관리자 로그인
+          판매자 로그인
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          관리자 전용 계정(사업자번호)으로 로그인하세요.
+          판매자 계정(사업자번호)으로 로그인하세요.
         </Typography>
       </Stack>
 
@@ -119,7 +119,7 @@ function AdminLoginPage() {
               fullWidth
             />
             <Button type="submit" variant="contained" disabled={submitting}>
-              관리자 로그인
+              판매자 로그인
             </Button>
           </Stack>
         </Box>

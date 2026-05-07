@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.prosos.sosos.dto.ApiResponse;
 import com.prosos.sosos.dto.ProductDto;
 import com.prosos.sosos.dto.ProductOptionDto;
+import com.prosos.sosos.model.Seller;
 import com.prosos.sosos.model.User;
 import com.prosos.sosos.service.SellerService;
 import com.prosos.sosos.service.UserService;
@@ -23,7 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +50,18 @@ public class ProductApiController {
     public ResponseEntity<ApiResponse<List<ProductDto>>> getAllProducts() {
         List<ProductDto> products = sellerService.getAllProducts();
         return ResponseEntity.ok(ApiResponse.success(products, "상품 목록 조회 성공"));
+    }
+
+    @GetMapping("/managed")
+    public ResponseEntity<ApiResponse<List<ProductDto>>> getManagedProducts(HttpSession session) {
+        try {
+            Seller seller = requireLoggedInSeller(session);
+            List<ProductDto> products = sellerService.getProductsBySeller(seller.getId());
+            return ResponseEntity.ok(ApiResponse.success(products, "판매자 상품 목록 조회 성공"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.failure(e.getMessage()));
+        }
     }
 
     @GetMapping("/{id}")
@@ -76,17 +93,19 @@ public class ProductApiController {
             @RequestParam("image") MultipartFile imageFile,
             @RequestParam(value = "descriptionImage", required = false) MultipartFile descriptionImageFile,
             @RequestParam("keywords") String keywordsJson,
-            @RequestParam(value = "options", required = false) String optionsJson,
-            @RequestParam(value = "discoveryTabKeys", required = false) String discoveryTabKeysJson
+            @RequestParam(value = "optionsJson", required = false) String optionsJson,
+            @RequestParam(value = "discoveryTabKeysJson", required = false) String discoveryTabKeysJson,
+            HttpSession session
     ) {
         try {
-            Map<String, List<String>> keywords = objectMapper.readValue(keywordsJson, new TypeReference<>() {
-            });
+            Seller seller = requireLoggedInSeller(session);
+            Map<String, List<String>> keywords = parseKeywordMap(keywordsJson);
             List<ProductOptionDto> optionDtos = parseOptionDtos(optionsJson, Collections.emptyList());
             List<String> discoveryTabKeys = parseStringList(discoveryTabKeysJson, Collections.emptyList());
             productDto.setDiscoveryTabKeys(discoveryTabKeys);
 
-            ProductDto savedProduct = sellerService.addProduct(
+            ProductDto savedProduct = sellerService.addProductForSeller(
+                    seller.getId(),
                     productDto,
                     imageFile,
                     keywords,
@@ -96,6 +115,12 @@ public class ProductApiController {
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success(savedProduct, "상품 등록 성공"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
         } catch (IOException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure("JSON 형식이 올바르지 않습니다."));
@@ -114,21 +139,33 @@ public class ProductApiController {
             @ModelAttribute ProductDto productDto,
             @RequestParam(value = "image", required = false) MultipartFile imageFile,
             @RequestParam(value = "descriptionImage", required = false) MultipartFile descriptionImageFile,
-            @RequestParam(value = "options", required = false) String optionsJson,
-            @RequestParam(value = "discoveryTabKeys", required = false) String discoveryTabKeysJson
+            @RequestParam(value = "keywords", required = false) String keywordsJson,
+            @RequestParam(value = "optionsJson", required = false) String optionsJson,
+            @RequestParam(value = "discoveryTabKeysJson", required = false) String discoveryTabKeysJson,
+            HttpSession session
     ) {
         try {
+            Seller seller = requireLoggedInSeller(session);
+            Map<String, List<String>> keywords = keywordsJson == null ? null : parseKeywordMap(keywordsJson);
             List<ProductOptionDto> optionDtos = parseOptionDtos(optionsJson, null);
             List<String> discoveryTabKeys = parseStringList(discoveryTabKeysJson, null);
             productDto.setDiscoveryTabKeys(discoveryTabKeys);
-            ProductDto updatedProduct = sellerService.updateProduct(
+            ProductDto updatedProduct = sellerService.updateProductForSeller(
+                    seller.getId(),
                     productId,
                     productDto,
                     imageFile,
                     descriptionImageFile,
+                    keywords,
                     optionDtos
             );
             return ResponseEntity.ok(ApiResponse.success(updatedProduct, "상품 수정 성공"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
         } catch (IOException e) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure("사이즈 옵션 JSON 형식이 올바르지 않습니다."));
@@ -142,9 +179,21 @@ public class ProductApiController {
     }
 
     @DeleteMapping("/{productId}")
-    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long productId) {
-        sellerService.deleteProduct(productId);
-        return ResponseEntity.ok(ApiResponse.success(null, "상품 삭제 성공"));
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Long productId, HttpSession session) {
+        try {
+            Seller seller = requireLoggedInSeller(session);
+            sellerService.deleteProductForSeller(productId, seller.getId());
+            return ResponseEntity.ok(ApiResponse.success(null, "상품 삭제 성공"));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(ApiResponse.failure(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure(e.getMessage()));
+        }
     }
 
     @GetMapping("/cart/items")
@@ -228,6 +277,14 @@ public class ProductApiController {
         }
     }
 
+    private Seller requireLoggedInSeller(HttpSession session) {
+        Object loggedInUser = session.getAttribute("loggedInUser");
+        if (loggedInUser instanceof Seller seller) {
+            return seller;
+        }
+        throw new IllegalStateException("판매자 로그인이 필요합니다.");
+    }
+
     private User requireLoggedInUser(HttpSession session) {
         Object loggedInUser = session.getAttribute("loggedInUser");
         if (loggedInUser instanceof User user) {
@@ -243,8 +300,41 @@ public class ProductApiController {
         if (optionsJson.isBlank()) {
             return defaultValue == null ? null : defaultValue;
         }
-        return objectMapper.readValue(optionsJson, new TypeReference<>() {
-        });
+        try {
+            return objectMapper.readValue(optionsJson, new TypeReference<>() {
+            });
+        } catch (IOException ignored) {
+            // JSON 파싱이 실패하면 "M:3,L:4" 같은 CSV 옵션 입력도 허용한다.
+            List<ProductOptionDto> parsedOptions = new ArrayList<>();
+            String[] tokens = optionsJson.split(",");
+            int displayOrder = 0;
+            for (String token : tokens) {
+                if (token == null) {
+                    continue;
+                }
+                String normalized = token.trim();
+                if (normalized.isBlank()) {
+                    continue;
+                }
+                String[] pair = normalized.split(":");
+                if (pair.length != 2) {
+                    throw new IOException("Invalid option format: " + normalized);
+                }
+                String sizeLabel = pair[0].trim();
+                Integer quantity;
+                try {
+                    quantity = Integer.parseInt(pair[1].trim());
+                } catch (NumberFormatException e) {
+                    throw new IOException("Invalid option quantity: " + normalized, e);
+                }
+                ProductOptionDto optionDto = new ProductOptionDto();
+                optionDto.setSizeLabel(sizeLabel);
+                optionDto.setQuantity(quantity);
+                optionDto.setDisplayOrder(displayOrder++);
+                parsedOptions.add(optionDto);
+            }
+            return parsedOptions;
+        }
     }
 
     private List<String> parseStringList(String value, List<String> defaultValue) throws IOException {
@@ -254,7 +344,39 @@ public class ProductApiController {
         if (value.isBlank()) {
             return defaultValue == null ? null : defaultValue;
         }
-        return objectMapper.readValue(value, new TypeReference<>() {
-        });
+        try {
+            return objectMapper.readValue(value, new TypeReference<>() {
+            });
+        } catch (IOException ignored) {
+            // 탐색 탭 값이 JSON 배열이 아니어도 콤마 구분 문자열로 복구한다.
+            return Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(item -> !item.isBlank())
+                    .distinct()
+                    .toList();
+        }
+    }
+
+    private Map<String, List<String>> parseKeywordMap(String value) throws IOException {
+        if (value == null || value.isBlank()) {
+            return Collections.emptyMap();
+        }
+        try {
+            return objectMapper.readValue(value, new TypeReference<>() {
+            });
+        } catch (IOException ignored) {
+            // 키워드 JSON이 깨져도 "a,b,c" 형태를 manual 키워드로 보정한다.
+            List<String> manualKeywords = Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(item -> !item.isBlank())
+                    .distinct()
+                    .toList();
+            if (manualKeywords.isEmpty()) {
+                return Collections.emptyMap();
+            }
+            Map<String, List<String>> fallback = new LinkedHashMap<>();
+            fallback.put("manual", new ArrayList<>(new LinkedHashSet<>(manualKeywords)));
+            return fallback;
+        }
     }
 }

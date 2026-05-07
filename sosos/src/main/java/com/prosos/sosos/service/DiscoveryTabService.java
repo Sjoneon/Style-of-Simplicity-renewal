@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
+// 홈 탐색 탭의 기본값 보장, 순서 정규화, CRUD를 담당한다.
 public class DiscoveryTabService {
 
     private final DiscoveryTabRepository discoveryTabRepository;
@@ -93,6 +94,7 @@ public class DiscoveryTabService {
     }
 
     private void ensureDefaultTabs() {
+        // 최초 실행 시 탭이 비어 있으면 기본 탭 세트를 자동 생성한다.
         if (discoveryTabRepository.count() > 0) {
             return;
         }
@@ -124,6 +126,7 @@ public class DiscoveryTabService {
     }
 
     private void normalizeDisplayOrders() {
+        // 삭제/삽입 이후 순번 공백이 생기지 않도록 0부터 재정렬한다.
         List<DiscoveryTab> tabs = discoveryTabRepository.findAllByOrderByDisplayOrderAscIdAsc();
         boolean changed = false;
         int nextOrder = 0;
@@ -150,6 +153,7 @@ public class DiscoveryTabService {
     }
 
     private String generateUniqueKey(String label) {
+        // tabKey 충돌 시 숫자 접미사를 붙여 유니크 값을 만든다.
         String base = slugify(label);
         String candidate = base;
         int suffix = 2;

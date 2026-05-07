@@ -1,48 +1,92 @@
-# SOS 리뉴얼 (Style of Simplicity Renewal)
+# SOS 리뉴??(Style of Simplicity Renewal)
 
-## 한 줄 목표
-기존 Spring Boot + Thymeleaf 기반 쇼핑몰을 React 프론트 + REST API 구조로 전환하고, AWS 배포 가능한 운영 형태까지 정리한다.  
-결제는 실제 PG 연동 전 단계(UI/주문 흐름 검증)까지를 범위로 한다.
+## ?�로?�트 ?�시중단 ?�내 (중요)
+- ?�유: ?�보처리기사 ?�기 준�?
+- 중단 기간: 2026-04-01 ~ 2026-04-18
+- ?�개 ?�정?? 2026-04-19
+- ?�세 공�?: [PROJECT-PAUSE-NOTICE.md](./PROJECT-PAUSE-NOTICE.md)
 
-## 리뉴얼 핵심 우선순위
-1. 운영 기본선 확보: 비밀번호 해시, 환경변수 분리, dev/prod 분리, Actuator 최소 노출
-2. API 경계 정리: `/api/v1/*` JSON API 분리, 공통 응답 포맷(`success/data/message`) 적용
-3. 주문/재고 무결성: 트랜잭션 적용, 재고 동시성 제어, 수량 저장 일관성 확보
-4. 프론트 전환: React + Vite + MUI로 핵심 화면 이전
-5. 배포/운영: Docker 기반 배포 준비 후 AWS(EC2/RDS/S3) 적용
+## ??�?목표
+기존 Spring Boot + Thymeleaf 기반 ?�핑몰을 React ?�론??+ REST API 구조�??�환?�고, AWS 배포 가?�한 ?�영 ?�태까�? ?�리?�다.  
+결제???�제 PG ?�동 ???�계(UI/주문 ?�름 검�?까�?�?범위�??�다.
 
-## 진행 현황
-### 1순위 (완료)
-- 백엔드 운영 기본선 정리: 완료 (2026-02-15)
-- API 경계 정리: 완료 (2026-02-19)
-- 주문/재고 무결성 보강: 완료 (2026-02-22)
+## 리뉴???�심 ?�선?�위
+1. ?�영 기본???�보: 비�?번호 ?�시, ?�경변??분리, dev/prod 분리, Actuator 최소 ?�출
+2. API 경계 ?�리: `/api/v1/*` JSON API 분리, 공통 ?�답 ?�맷(`success/data/message`) ?�용
+3. 주문/?�고 무결?? ?�랜??�� ?�용, ?�고 ?�시???�어, ?�량 ?�???��????�보
+4. ?�론???�환: React + Vite + MUI�??�심 ?�면 ?�전
+5. 배포/?�영: Docker 기반 배포 준�???AWS(EC2/RDS/S3) ?�용
 
-### 2순위 (진행 중)
-- `frontend/` 초기 구성 완료 (React + Vite + MUI + Axios)
-- 핵심 화면 마이그레이션 진행 중
-  - 완료: 메인, 상품상세, 장바구니, 로그인/회원가입, 판매자 대시보드
-  - 완료: 고객센터(`/support`) MVP (문의 작성/조회/삭제, 관리자 답변 연동)
-  - 완료: 마이페이지(`/mypage`) MVP + 계정 보안 API 연동(회원정보/배송지/비밀번호 변경)
-  - 완료: 마이페이지 섹션 접기/펼치기 + 배송지/계정관리 분리
-  - 완료: 알림(`/notifications`) DB 저장형 1차 (목록/요약/읽음/전체읽음, 트리거 연동)
-  - 완료: 리뷰/찜/최근 본 연동 1차
-- 홈 탐색 탭 동적 관리, 카테고리 기본 탐색, 랭킹 정렬 반영 완료
-- 이미지/파일 저장 전략(local/S3 분리): 개발 구현 완료, 운영 리허설 대기
-  - 완료: `dev(local)` / `prod(S3)` 분기 업로드/조회 정책 코드 반영
-  - 완료: 로컬 `S3 모드` 스모크 검증(자격증명 미설정 시 정상적으로 인증 오류 반환 확인)
-  - 대기: 실제 AWS 자격증명 기반 업로드 성공 검증, EC2+IAM Role 리허설
+## 진행 ?�황
+### 1?�위 (?�료)
+- 백엔???�영 기본???�리: ?�료 (2026-02-15)
+- API 경계 ?�리: ?�료 (2026-02-19)
+- 주문/?�고 무결??보강: ?�료 (2026-02-22)
 
-### 3순위 (예정)
-- 배포 설정 정리 (Dockerfile, CORS, 도메인)
-- AWS 배포 (EC2, RDS, S3, 필요 시 CloudFront)
-- 통합 테스트/운영 점검
+### 2?�위 (진행 �?
+- `frontend/` 초기 구성 ?�료 (React + Vite + MUI + Axios)
+- ?�심 ?�면 마이그레?�션 진행 �?
+  - ?�료: 메인, ?�품?�세, ?�바구니, 로그???�원가?? ?�매???�?�보??
+  - ?�료: 고객?�터(`/support`) MVP (문의 ?�성/조회/??��, 관리자 ?��? ?�동)
+  - ?�료: 마이?�이지(`/mypage`) MVP + 계정 보안 API ?�동(?�원?�보/배송지/비�?번호 변�?
+  - ?�료: 마이?�이지 ?�션 ?�기/?�치�?+ 배송지/계정관�?분리
+  - ?�료: ?�림(`/notifications`) DB ?�?�형 1�?(목록/?�약/?�음/?�체?�음, ?�리�??�동)
+  - ?�료: 리뷰/�?최근 �??�동 1�?
+- ???�색 ???�적 관�? 카테고리 기본 ?�색, ??�� ?�렬 반영 ?�료
+- ?��?지/?�일 ?�???�략(local/S3 분리): 개발 구현 ?�료, ?�영 리허???��?
+  - ?�료: `dev(local)` / `prod(S3)` 분기 ?�로??조회 ?�책 코드 반영
+  - ?�료: 로컬 `S3 모드` ?�모??검�??�격증명 미설?????�상?�으�??�증 ?�류 반환 ?�인)
+  - ?��? ?�제 AWS ?�격증명 기반 ?�로???�공 검�? EC2+IAM Role 리허??
 
-## 기술 스택
+### 3?�위 (?�정)
+- 배포 ?�정 ?�리 (Dockerfile, CORS, ?�메??
+- AWS 배포 (EC2, RDS, S3, ?�요 ??CloudFront)
+- ?�합 ?�스???�영 ?��?
+
+## 기술 ?�택
 - Backend: Java 17, Spring Boot 3.3.5, Spring Data JPA, MySQL 8.0
 - Frontend: React 19, Vite 7, MUI 7, Axios
 - Infra(배포 목표): AWS EC2, RDS, S3, Docker
 
-## 특이 사항
-### 프로젝트 임시중단
-- 사유: 정보처리기사 실기 준비
+## ?�이 ?�항
+### ?�로?�트 ?�시중단
+- ?�유: ?�보처리기사 ?�기 준�?
 - 중단 기간: 2026-04-01 ~ 2026-04-18
+## ?�행 방법
+### 백엔??(dev)
+```bash
+cd sosos
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Windows PowerShell:
+```powershell
+cd sosos
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="비�?번호"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
+### ?�론??
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 검�?명령??
+```bash
+cd frontend && npm run lint && npm run build
+cd sosos && ./mvnw -DskipTests compile
+```
+
+Windows PowerShell:
+```powershell
+cd frontend; npm run lint; npm run build
+cd ..\sosos; .\mvnw.cmd -DskipTests compile
+```
+
+## 참고 문서
+- ?�체 로드�? `sosos/docs/master-renewal-roadmap.md`
+- 최신 ?�업 ?�약: `sosos/docs/work-summary.md`
+- ?�일 로그: `sosos/docs/daily/`

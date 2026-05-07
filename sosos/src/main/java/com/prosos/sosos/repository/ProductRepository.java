@@ -13,14 +13,27 @@ import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    // 상품 이름으로 검색 (부분 일치)
+    // 상품명 부분 일치 검색
     List<Product> findByNameContaining(String name);
 
-    // 카테고리별로 분류 조회
+    // 카테고리 기준 목록 조회
     List<Product> findByCategory(String category);
 
-    // 재고 차감 전 행 잠금으로 동시 구매 충돌 방지
+    // 판매자 소유 상품 조회
+    List<Product> findBySeller_Id(Long sellerId);
+
+    // 재고 차감 전 잠금 조회
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id = :id")
     Optional<Product> findByIdForUpdate(@Param("id") Long id);
+
+    // 재고 보유 상품 키워드 포함 조회
+    @Query("""
+            select distinct p
+            from Product p
+            left join fetch p.productKeywords pk
+            left join fetch pk.keyword
+            where p.quantity > 0
+            """)
+    List<Product> findAllInStockWithKeywords();
 }

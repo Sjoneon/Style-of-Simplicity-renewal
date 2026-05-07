@@ -18,7 +18,6 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import LoginPromptDialog from '../components/LoginPromptDialog'
 import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
-import { purchaseProduct } from '../services/orderApi'
 import { addProductToCart, fetchProductById } from '../services/productApi'
 import { recordRecentProductView } from '../services/userApi'
 import { fetchWishlistStatus, toggleWishlist } from '../services/wishlistApi'
@@ -197,22 +196,25 @@ function ProductDetailPage() {
       return
     }
 
-    setActionLoading(true)
-    setError('')
-
-    try {
-      const response = await purchaseProduct(product.id, selectedOptionId || undefined)
-      setToastMessage(response.message || '주문이 완료되었습니다.')
-      await loadProduct()
-    } catch (err) {
-      if (err?.response?.status === 401) {
-        handleRequireLogin()
-        return
-      }
-      setError(getApiErrorMessage(err, '바로 주문 처리에 실패했습니다.'))
-    } finally {
-      setActionLoading(false)
-    }
+    navigate('/checkout', {
+      state: {
+        mode: 'product',
+        productId: product.id,
+        optionId: selectedOptionId || null,
+        orderItems: [
+          {
+            id: product.id,
+            name: selectedOption ? `${product.name} (${selectedOption.sizeLabel})` : product.name,
+            quantity: 1,
+            price: Number(product.price || 0),
+            selectedSizeLabel: selectedOption?.sizeLabel || '',
+            imageUrl: product.imageUrl || '',
+            brandName: String(product.sellerName || 'SOS').trim(),
+          },
+        ],
+        totalAmount: Number(product.price || 0),
+      },
+    })
   }
 
   const handleMoveSupport = () => {
@@ -278,6 +280,13 @@ function ProductDetailPage() {
 
   const imageSrc = resolveImageUrl(product.imageUrl)
   const descriptionImageSrc = resolveImageUrl(product.descriptionImageUrl)
+  const brandName = String(product.sellerName || 'SOS').trim()
+  const salePrice = Number(product.price || 0)
+  const originalPrice = Number(product.originalPrice || 0)
+  const hasSale = Number.isFinite(originalPrice) && originalPrice > salePrice
+  const discountRate = hasSale
+    ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+    : 0
   const hasStock = Number(product.quantity) > 0
   const hasOptions = Array.isArray(product.options) && product.options.length > 0
   const selectedOption =
@@ -317,9 +326,14 @@ function ProductDetailPage() {
 
           <Stack spacing={1.2} sx={{ flex: 1 }}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.2}>
-              <Typography variant="h4" fontWeight={800}>
-                {product.name}
-              </Typography>
+              <Stack spacing={0.4}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>
+                  {brandName}
+                </Typography>
+                <Typography variant="h4" fontWeight={800}>
+                  {product.name}
+                </Typography>
+              </Stack>
               <Stack direction="row" spacing={0.8}>
                 <Button variant="text" size="small" onClick={handleMoveSupport} sx={{ whiteSpace: 'nowrap', fontWeight: 700 }}>
                   상품 문의
@@ -337,9 +351,21 @@ function ProductDetailPage() {
             <Typography variant="body2" color="text.secondary">
               카테고리: {product.category || '미분류'}
             </Typography>
-            <Typography variant="h5" color="primary.main" fontWeight={800}>
-              {Number(product.price).toLocaleString('ko-KR')}원
-            </Typography>
+            <Stack direction="row" spacing={0.8} alignItems="baseline" flexWrap="wrap" useFlexGap>
+              {hasSale && (
+                <Typography variant="h6" sx={{ color: 'error.main', fontWeight: 800 }}>
+                  {discountRate}%
+                </Typography>
+              )}
+              <Typography variant="h5" color="primary.main" fontWeight={800}>
+                {salePrice.toLocaleString('ko-KR')}원
+              </Typography>
+              {hasSale && (
+                <Typography variant="body2" color="text.secondary" sx={{ textDecoration: 'line-through' }}>
+                  {originalPrice.toLocaleString('ko-KR')}원
+                </Typography>
+              )}
+            </Stack>
             <Typography variant="body2" color={hasStock ? 'success.main' : 'error.main'}>
               {hasOptions
                 ? selectedOption
@@ -392,7 +418,7 @@ function ProductDetailPage() {
                 disabled={actionLoading}
                 fullWidth
               >
-                바로 주문
+                주문
               </Button>
             </Stack>
           </Stack>

@@ -24,6 +24,9 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // 유지보수 신호등: 규칙 위반 시 에러로 막지 않고 경고로 먼저 관찰
+      'max-lines': ['warn', { max: 250, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 100, skipBlankLines: true, skipComments: true, IIFEs: true }],
     },
   },
 ])

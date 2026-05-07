@@ -20,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/banners")
+// 메인 배너 조회/등록/삭제 API를 제공한다.
 public class MainBannerApiController {
 
     private final MainBannerService mainBannerService;
@@ -95,10 +96,11 @@ public class MainBannerApiController {
     }
 
     private Seller requireLoggedInSeller(HttpSession session) {
+        // 배너 등록/삭제는 판매자 세션이 확인될 때만 허용한다.
         Object loggedInUser = session.getAttribute("loggedInUser");
         if (loggedInUser instanceof Seller seller) {
             return seller;
         }
-        throw new IllegalStateException("슈퍼관리자 로그인이 필요합니다.");
+        throw new IllegalStateException("사업자 로그인이 필요합니다.");
     }
 }

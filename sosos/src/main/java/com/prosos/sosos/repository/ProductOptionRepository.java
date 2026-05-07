@@ -14,8 +14,10 @@ import java.util.Optional;
 @Repository
 public interface ProductOptionRepository extends JpaRepository<ProductOption, Long> {
 
+    // 상품 옵션 노출 순서 조회
     List<ProductOption> findByProductIdOrderByDisplayOrderAscIdAsc(Long productId);
 
+    // 옵션 재고 차감 전 잠금 조회
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select po from ProductOption po where po.id = :id")
     Optional<ProductOption> findByIdForUpdate(@Param("id") Long id);

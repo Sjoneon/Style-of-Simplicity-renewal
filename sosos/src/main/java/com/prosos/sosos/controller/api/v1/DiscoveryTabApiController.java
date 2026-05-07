@@ -20,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/discovery-tabs")
+// 홈 탐색 탭 조회/관리 API를 제공한다.
 public class DiscoveryTabApiController {
 
     private final DiscoveryTabService discoveryTabService;
@@ -109,6 +110,7 @@ public class DiscoveryTabApiController {
     }
 
     private void requireSellerAdmin(HttpSession session) {
+        // 탭 변경은 판매자 권한 사용자만 허용한다.
         Object userType = session.getAttribute("userType");
         if (!"seller".equals(userType)) {
             throw new IllegalStateException("슈퍼관리자 로그인이 필요합니다.");

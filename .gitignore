@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 *.env
+**/.env.local
+**/.env.*.local
+frontend/.env.local
 
 # Local-only Spring secret configs
 **/application-local.properties

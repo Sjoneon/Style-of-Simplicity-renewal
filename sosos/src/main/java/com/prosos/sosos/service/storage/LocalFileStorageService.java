@@ -13,6 +13,7 @@ import java.util.UUID;
 
 @Service
 @ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
+// 개발/로컬 실행에서 파일을 디스크에 저장하는 구현체다.
 public class LocalFileStorageService implements FileStorageService {
 
     private final Path uploadRootPath;
@@ -39,6 +40,7 @@ public class LocalFileStorageService implements FileStorageService {
             String safeOriginalName = sanitizeFileName(file.getOriginalFilename(), fallbackBaseName);
             String uniqueFileName = UUID.randomUUID() + "_" + safeOriginalName;
             Path targetPath = targetDirectory.resolve(uniqueFileName).normalize();
+            // 상위 경로 탈출(path traversal) 업로드를 차단한다.
             if (!targetPath.startsWith(uploadRootPath)) {
                 throw new IllegalArgumentException("Invalid target path.");
             }
@@ -72,6 +74,7 @@ public class LocalFileStorageService implements FileStorageService {
         }
 
         String fileName = Paths.get(candidate).getFileName().toString();
+        // 파일명은 URL/파일시스템 안전 문자를 제외하고 정리한다.
         fileName = fileName.replaceAll("\\s+", "-");
         fileName = fileName.replaceAll("[^A-Za-z0-9._-]", "");
 

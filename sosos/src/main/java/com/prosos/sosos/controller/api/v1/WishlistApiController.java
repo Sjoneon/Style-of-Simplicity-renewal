@@ -22,6 +22,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/wishlist")
+// 사용자 찜 추가/조회/삭제 API를 제공한다.
 public class WishlistApiController {
 
     private final WishlistItemRepository wishlistItemRepository;
@@ -75,6 +76,7 @@ public class WishlistApiController {
             User user = requireLoggedInUser(session);
             Product product = findProduct(productId);
 
+            // 중복 찜 요청은 무시하고 성공 응답으로 정합성을 유지한다.
             if (!wishlistItemRepository.existsByUserIdAndProductId(user.getId(), productId)) {
                 WishlistItem item = new WishlistItem();
                 item.setUser(user);
@@ -110,6 +112,7 @@ public class WishlistApiController {
     }
 
     private User requireLoggedInUser(HttpSession session) {
+        // 찜 데이터는 사용자 개인화 정보이므로 로그인 사용자만 접근한다.
         Object loggedInUser = session.getAttribute("loggedInUser");
         if (loggedInUser instanceof User user) {
             return user;

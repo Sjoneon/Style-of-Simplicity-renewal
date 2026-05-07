@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+// 메인 배너 생성/조회/삭제 비즈니스 로직을 담당한다.
 public class MainBannerService {
 
     private final MainBannerRepository mainBannerRepository;
@@ -57,6 +58,7 @@ public class MainBannerService {
             Integer displayOrder,
             MultipartFile imageFile
     ) {
+        // 이미지가 없으면 홈 배너 품질이 깨지므로 필수 입력으로 강제한다.
         if (imageFile == null || imageFile.isEmpty()) {
             throw new IllegalArgumentException("배너 이미지를 선택해 주세요.");
         }
@@ -86,6 +88,7 @@ public class MainBannerService {
         MainBanner banner = mainBannerRepository.findById(bannerId)
                 .orElseThrow(() -> new IllegalArgumentException("배너를 찾을 수 없습니다."));
 
+        // 본인 소유 배너만 삭제할 수 있도록 소유권을 검증한다.
         if (!Objects.equals(banner.getSeller().getId(), sellerId)) {
             throw new IllegalArgumentException("본인이 등록한 배너만 삭제할 수 있습니다.");
         }

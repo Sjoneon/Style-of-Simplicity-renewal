@@ -24,6 +24,12 @@ public class Inquiry {
     @Column(name = "content", nullable = false)
     private String content;
 
+    @Column(name = "category")
+    private String category;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "answer")
     private String answer;  // 판매자가 작성한 답변
 
@@ -54,6 +60,12 @@ public class Inquiry {
 
     public String getContent() { return content; }
     public void setContent(String content) { this.content = content; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public String getAnswer() { return answer; }
     public void setAnswer(String answer) { this.answer = answer; }

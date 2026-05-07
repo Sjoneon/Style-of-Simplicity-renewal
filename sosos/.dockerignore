@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+.mvn
+target
+uploads
+docs
+db
+backend.out.log
+backend.err.log
+backend-dev.log
+backend-dev.err.log
+*.iml
+*.log

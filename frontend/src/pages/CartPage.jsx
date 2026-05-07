@@ -15,15 +15,16 @@ import {
 } from '@mui/material'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import RemoveOutlinedIcon from '@mui/icons-material/RemoveOutlined'
+import { useNavigate } from 'react-router-dom'
 import { getApiErrorMessage } from '../services/api'
-import { fetchMyOrders, purchaseCart } from '../services/orderApi'
+import { fetchMyOrders } from '../services/orderApi'
 import { fetchCartItems, removeProductFromCart, updateCartItemQuantity } from '../services/productApi'
 
 function CartPage() {
+  const navigate = useNavigate()
   const [cartItems, setCartItems] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [isPurchasing, setIsPurchasing] = useState(false)
   const [removingCartItemId, setRemovingCartItemId] = useState(null)
   const [changingCartItemId, setChangingCartItemId] = useState(null)
   const [error, setError] = useState('')
@@ -68,18 +69,26 @@ function CartPage() {
   }
 
   const handlePurchaseCart = async () => {
-    setIsPurchasing(true)
-    setError('')
-
-    try {
-      const response = await purchaseCart()
-      setToastMessage(response.message || '장바구니 주문이 완료되었습니다.')
-      await loadData()
-    } catch (err) {
-      setError(getApiErrorMessage(err, '장바구니 주문 처리에 실패했습니다.'))
-    } finally {
-      setIsPurchasing(false)
+    if (cartItems.length === 0) {
+      setToastMessage('장바구니가 비어 있습니다.')
+      return
     }
+    navigate('/checkout', {
+      state: {
+        mode: 'cart',
+        orderItems: cartItems.map((item) => ({
+          id: item.id,
+          cartItemId: item.cartItemId,
+          name: `${item.name}${item.selectedSizeLabel ? ` (${item.selectedSizeLabel})` : ''}`,
+          quantity: Number(item.quantity || 0),
+          price: Number(item.price || 0),
+          selectedSizeLabel: item.selectedSizeLabel || '',
+          imageUrl: item.imageUrl || '',
+          brandName: String(item.sellerName || 'SOS').trim(),
+        })),
+        totalAmount,
+      },
+    })
   }
 
   const handleQuantityChange = async (cartItemId, nextQuantity) => {
@@ -186,7 +195,7 @@ function CartPage() {
                       <Button
                         color="error"
                         onClick={() => handleRemove(item.cartItemId)}
-                        disabled={isPurchasing || changingCartItemId === item.cartItemId || removingCartItemId === item.cartItemId}
+                        disabled={changingCartItemId === item.cartItemId || removingCartItemId === item.cartItemId}
                       >
                         삭제
                       </Button>
@@ -203,7 +212,7 @@ function CartPage() {
               <Typography variant="h6" fontWeight={800}>
                 총 결제 금액: {totalAmount.toLocaleString('ko-KR')}원
               </Typography>
-              <Button variant="contained" onClick={handlePurchaseCart} disabled={isPurchasing || cartItems.length === 0}>
+              <Button variant="contained" onClick={handlePurchaseCart} disabled={cartItems.length === 0}>
                 장바구니 주문하기
               </Button>
             </Stack>

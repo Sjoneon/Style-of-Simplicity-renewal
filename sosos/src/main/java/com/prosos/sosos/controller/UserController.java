@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @RequestMapping("/users")
+// 사용자/판매자 로그인 분기와 레거시 사용자 화면 진입을 담당한다.
 public class UserController {
 
     private final UserService userService;
@@ -68,6 +69,7 @@ public class UserController {
                         Model model,
                         HttpSession session) {
         try {
+            // 입력값 형식으로 판매자(사업자번호)와 일반 사용자(이메일)를 구분한다.
             if (isBusinessNumber(username)) {
                 boolean isLoggedIn = sellerService.login(username, password);
                 if (!isLoggedIn) {
@@ -139,6 +141,7 @@ public class UserController {
     @GetMapping("/type")
     @ResponseBody
     public String getUserType(HttpSession session) {
+        // 프런트 헤더/권한 분기에서 사용할 최소 사용자 유형만 반환한다.
         Object loggedInUser = session.getAttribute("loggedInUser");
         if (loggedInUser instanceof Seller) {
             return "seller";

@@ -4,6 +4,10 @@ export async function fetchProducts() {
   return ensureApiSuccess(await api.get('/api/v1/products'))
 }
 
+export async function fetchManagedProducts() {
+  return ensureApiSuccess(await api.get('/api/v1/products/managed'))
+}
+
 export async function fetchProductById(productId) {
   return ensureApiSuccess(await api.get(`/api/v1/products/${productId}`))
 }
@@ -37,10 +41,10 @@ function appendIfDefined(formData, key, value) {
 }
 
 export async function createManagedProduct({
-  sellerId,
   name,
   category,
   price,
+  originalPrice,
   quantity,
   description,
   situationScore,
@@ -56,10 +60,10 @@ export async function createManagedProduct({
   options,
 }) {
   const formData = new FormData()
-  formData.append('sellerId', String(sellerId))
   formData.append('name', name)
   formData.append('category', category)
   formData.append('price', String(price))
+  appendIfDefined(formData, 'originalPrice', originalPrice)
   formData.append('quantity', String(quantity))
   formData.append('description', description || '')
   appendIfDefined(formData, 'situationScore', situationScore)
@@ -68,11 +72,11 @@ export async function createManagedProduct({
   appendIfDefined(formData, 'showInNewTab', showInNewTab)
   appendIfDefined(formData, 'showInBasicTab', showInBasicTab)
   appendIfDefined(formData, 'showInWorkTab', showInWorkTab)
-  formData.append('discoveryTabKeys', JSON.stringify(discoveryTabKeys || []))
+  formData.append('discoveryTabKeysJson', JSON.stringify(discoveryTabKeys || []))
   formData.append('image', imageFile)
   appendIfDefined(formData, 'descriptionImage', descriptionImageFile)
   formData.append('keywords', JSON.stringify(keywords || {}))
-  formData.append('options', JSON.stringify(options || []))
+  formData.append('optionsJson', JSON.stringify(options || []))
 
   return ensureApiSuccess(
     await api.post('/api/v1/products', formData),
@@ -85,6 +89,7 @@ export async function updateManagedProduct(
     name,
     category,
     price,
+    originalPrice,
     quantity,
     description,
     situationScore,
@@ -96,6 +101,7 @@ export async function updateManagedProduct(
     showInWorkTab,
     imageFile,
     descriptionImageFile,
+    keywords,
     options,
   },
 ) {
@@ -103,6 +109,7 @@ export async function updateManagedProduct(
   appendIfDefined(formData, 'name', name)
   appendIfDefined(formData, 'category', category)
   appendIfDefined(formData, 'price', price)
+  appendIfDefined(formData, 'originalPrice', originalPrice)
   appendIfDefined(formData, 'quantity', quantity)
   appendIfDefined(formData, 'description', description)
   appendIfDefined(formData, 'situationScore', situationScore)
@@ -112,12 +119,15 @@ export async function updateManagedProduct(
   appendIfDefined(formData, 'showInBasicTab', showInBasicTab)
   appendIfDefined(formData, 'showInWorkTab', showInWorkTab)
   if (discoveryTabKeys !== undefined) {
-    formData.append('discoveryTabKeys', JSON.stringify(discoveryTabKeys || []))
+    formData.append('discoveryTabKeysJson', JSON.stringify(discoveryTabKeys || []))
   }
   appendIfDefined(formData, 'image', imageFile)
   appendIfDefined(formData, 'descriptionImage', descriptionImageFile)
+  if (keywords !== undefined) {
+    formData.append('keywords', JSON.stringify(keywords || {}))
+  }
   if (options !== undefined) {
-    formData.append('options', JSON.stringify(options || []))
+    formData.append('optionsJson', JSON.stringify(options || []))
   }
 
   return ensureApiSuccess(

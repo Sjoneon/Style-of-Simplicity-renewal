@@ -9,9 +9,11 @@ import java.util.List;
 @Repository
 public interface ProductReviewRepository extends JpaRepository<ProductReview, Long> {
 
-    // 사용자 기준 최신순 리뷰 목록 조회 메서드
+    // 사용자 기준 최신순 리뷰 조회
     List<ProductReview> findByUser_IdOrderByCreatedAtDesc(Long userId);
 
-    // 주문당 리뷰 1건 제약용 중복 존재 체크
+    // 주문 기준 리뷰 중복 확인
     boolean existsByUser_IdAndOrder_Id(Long userId, Long orderId);
+
+    void deleteByProduct_Id(Long productId);
 }

@@ -5,21 +5,125 @@ import {
   Button,
   Chip,
   CircularProgress,
+  FormControlLabel,
+  MenuItem,
   Paper,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
-import { createInquiry, deleteInquiry, fetchMyInquiries } from '../services/inquiryApi'
+import {
+  createInquiry,
+  DEFAULT_INQUIRY_CATEGORY,
+  deleteInquiry,
+  fetchMyInquiries,
+  getInquiryCategoryLabel,
+  INQUIRY_CATEGORY_OPTIONS,
+  normalizeInquiryCategory,
+} from '../services/inquiryApi'
 import { fetchProducts } from '../services/productApi'
+import resolveImageUrl from '../utils/resolveImageUrl'
 
-const EMPTY_FORM = {
-  title: '',
-  content: '',
+const INQUIRY_IMAGE_MAX_SIZE_BYTES = 5 * 1024 * 1024
+const INQUIRY_IMAGE_MIN_WIDTH = 200
+const INQUIRY_IMAGE_MIN_HEIGHT = 200
+const INQUIRY_IMAGE_MAX_WIDTH = 6000
+const INQUIRY_IMAGE_MAX_HEIGHT = 6000
+const INQUIRY_ALLOWED_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
+const INQUIRY_NOTICE_LINES = [
+  '제품 사용, 오염, 전용 박스 손상, 라벨 제거, 사은품 및 부속 사용/분실 시, 교환/환불이 불가능 합니다.',
+  '교환을 원하시는 상품(사이즈)의 재고가 부족 시, 교환은 불가하지만 환불을 가능 합니다.',
+]
+
+function createEmptyForm(defaultCategory = DEFAULT_INQUIRY_CATEGORY) {
+  return {
+    title: '',
+    content: '',
+    category: defaultCategory,
+    imageFile: null,
+  }
 }
+
+const EMPTY_FORM = createEmptyForm()
+
+function formatBytes(bytes) {
+  const value = Number(bytes || 0)
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0MB'
+  }
+  return `${(value / (1024 * 1024)).toFixed(1)}MB`
+}
+
+async function getImageDimensions(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    image.onload = () => {
+      resolve({ width: image.width, height: image.height })
+      URL.revokeObjectURL(objectUrl)
+    }
+
+    image.onerror = () => {
+      reject(new Error('이미지 미리보기를 읽을 수 없습니다.'))
+      URL.revokeObjectURL(objectUrl)
+    }
+
+    image.src = objectUrl
+  })
+}
+
+async function validateInquiryImageFile(file) {
+  if (!file) {
+    return null
+  }
+
+  // 프론트에서 먼저 막아 사용자 재시도 시간을 줄이고, 서버에서도 동일 기준으로 한 번 더 검증한다.
+  if (!INQUIRY_ALLOWED_IMAGE_MIME_TYPES.includes(String(file.type || '').toLowerCase())) {
+    return 'PNG/JPG/WEBP/GIF 이미지 파일만 첨부할 수 있습니다.'
+  }
+
+  if (Number(file.size || 0) > INQUIRY_IMAGE_MAX_SIZE_BYTES) {
+    return `문의 이미지는 ${formatBytes(INQUIRY_IMAGE_MAX_SIZE_BYTES)} 이하만 업로드할 수 있습니다.`
+  }
+
+  try {
+    const { width, height } = await getImageDimensions(file)
+    if (width < INQUIRY_IMAGE_MIN_WIDTH || height < INQUIRY_IMAGE_MIN_HEIGHT) {
+      return `이미지 해상도는 최소 ${INQUIRY_IMAGE_MIN_WIDTH}x${INQUIRY_IMAGE_MIN_HEIGHT}px 이상이어야 합니다.`
+    }
+    if (width > INQUIRY_IMAGE_MAX_WIDTH || height > INQUIRY_IMAGE_MAX_HEIGHT) {
+      return `이미지 해상도는 최대 ${INQUIRY_IMAGE_MAX_WIDTH}x${INQUIRY_IMAGE_MAX_HEIGHT}px 이하여야 합니다.`
+    }
+  } catch (error) {
+    return error.message || '이미지 파일 확인 중 오류가 발생했습니다.'
+  }
+
+  return null
+}
+
+function createPreviewUrl(file) {
+  if (!file) {
+    return ''
+  }
+  return URL.createObjectURL(file)
+}
+
+const INQUIRY_STATUS_FILTER_OPTIONS = [
+  { value: 'ALL', label: '전체' },
+  { value: 'PENDING', label: '답변 대기' },
+  { value: 'ANSWERED', label: '답변 완료' },
+]
+
+const INQUIRY_CATEGORY_FILTER_OPTIONS = [
+  { value: 'ALL', label: '전체' },
+  ...INQUIRY_CATEGORY_OPTIONS,
+]
 
 function formatDateTime(value) {
   if (!value) {
@@ -52,11 +156,15 @@ function CustomerCenterPage() {
   const redirectingRef = useRef(false)
 
   const [form, setForm] = useState(EMPTY_FORM)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('')
+  const [noticeConfirmed, setNoticeConfirmed] = useState(false)
   const [inquiries, setInquiries] = useState([])
   const [productNameById, setProductNameById] = useState({})
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [deletingInquiryId, setDeletingInquiryId] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
@@ -148,6 +256,31 @@ function CustomerCenterPage() {
     loadMyInquiries()
   }, [loadMyInquiries])
 
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl)
+      }
+    }
+  }, [imagePreviewUrl])
+
+  useEffect(() => {
+    setForm((prev) => {
+      if (String(prev.title || '').trim() || String(prev.content || '').trim() || prev.imageFile) {
+        return prev
+      }
+
+      const nextCategory = linkedProductId ? 'PRODUCT_CHECK' : DEFAULT_INQUIRY_CATEGORY
+      if (normalizeInquiryCategory(prev.category) === nextCategory) {
+        return prev
+      }
+      return {
+        ...prev,
+        category: nextCategory,
+      }
+    })
+  }, [linkedProductId])
+
   const resolveProductName = useCallback(
     (productId, fallbackName = '') => {
       const safeFallback = String(fallbackName || '').trim()
@@ -172,8 +305,21 @@ function CustomerCenterPage() {
   }, [linkedProductContext.productName, linkedProductId, resolveProductName])
 
   const visibleInquiries = useMemo(() => {
-    return [...inquiries].sort((a, b) => String(b.createdDate || '').localeCompare(String(a.createdDate || '')))
-  }, [inquiries])
+    const sorted = [...inquiries].sort((a, b) => String(b.createdDate || '').localeCompare(String(a.createdDate || '')))
+    // 문의 상태/카테고리 필터를 함께 적용해 소비자가 원하는 문의만 빠르게 찾도록 한다.
+    return sorted.filter((inquiry) => {
+      const normalizedCategory = normalizeInquiryCategory(inquiry.category)
+      const hasAnswer = Boolean(String(inquiry.answer || '').trim())
+
+      const matchesCategory = categoryFilter === 'ALL' || normalizedCategory === categoryFilter
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        (statusFilter === 'PENDING' && !hasAnswer) ||
+        (statusFilter === 'ANSWERED' && hasAnswer)
+
+      return matchesCategory && matchesStatus
+    })
+  }, [categoryFilter, inquiries, statusFilter])
 
   const pendingCount = useMemo(() => {
     return inquiries.filter((inquiry) => !String(inquiry.answer || '').trim()).length
@@ -181,8 +327,57 @@ function CustomerCenterPage() {
 
   const answeredCount = Math.max(0, inquiries.length - pendingCount)
 
-  const resetForm = () => {
-    setForm(EMPTY_FORM)
+  const resetForm = useCallback(() => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl)
+    }
+    setImagePreviewUrl('')
+    setNoticeConfirmed(false)
+    setForm(createEmptyForm(linkedProductId ? 'PRODUCT_CHECK' : DEFAULT_INQUIRY_CATEGORY))
+  }, [imagePreviewUrl, linkedProductId])
+
+  const handleCategorySelect = (nextCategory) => {
+    setForm((prev) => ({
+      ...prev,
+      category: normalizeInquiryCategory(nextCategory),
+    }))
+  }
+
+  const handleImageChange = async (event) => {
+    const selectedFile = event.target.files?.[0] || null
+    event.target.value = ''
+
+    if (!selectedFile) {
+      return
+    }
+
+    const validationMessage = await validateInquiryImageFile(selectedFile)
+    if (validationMessage) {
+      setError(validationMessage)
+      return
+    }
+
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl)
+    }
+
+    const previewUrl = createPreviewUrl(selectedFile)
+    setImagePreviewUrl(previewUrl)
+    setForm((prev) => ({
+      ...prev,
+      imageFile: selectedFile,
+    }))
+  }
+
+  const clearSelectedImage = () => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl)
+    }
+    setImagePreviewUrl('')
+    setForm((prev) => ({
+      ...prev,
+      imageFile: null,
+    }))
   }
 
   const clearLinkedProduct = () => {
@@ -204,10 +399,22 @@ function CustomerCenterPage() {
       setError('문의 제목과 내용을 입력해 주세요.')
       return
     }
+    if (!noticeConfirmed) {
+      setError('교환/환불 주의사항 확인 후 문의를 등록해 주세요.')
+      return
+    }
+
+    const imageValidationMessage = await validateInquiryImageFile(form.imageFile)
+    if (imageValidationMessage) {
+      setError(imageValidationMessage)
+      return
+    }
 
     const payload = {
       title,
       content,
+      category: normalizeInquiryCategory(form.category),
+      imageFile: form.imageFile || null,
       ...(linkedProductId ? { productId: linkedProductId } : {}),
     }
 
@@ -358,6 +565,29 @@ function CustomerCenterPage() {
               </Typography>
 
               <Stack component="form" spacing={1.1} onSubmit={handleCreateInquiry}>
+                <Stack spacing={0.8}>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    문의 카테고리
+                  </Typography>
+                  <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
+                    {INQUIRY_CATEGORY_OPTIONS.map((option) => {
+                      const selected = normalizeInquiryCategory(form.category) === option.value
+                      return (
+                        <Button
+                          key={`inquiry-category-${option.value}`}
+                          type="button"
+                          size="small"
+                          variant={selected ? 'contained' : 'outlined'}
+                          color={selected ? 'primary' : 'inherit'}
+                          onClick={() => handleCategorySelect(option.value)}
+                        >
+                          {option.label}
+                        </Button>
+                      )
+                    })}
+                  </Stack>
+                </Stack>
+
                 <TextField
                   label="문의 제목"
                   value={form.title}
@@ -374,6 +604,58 @@ function CustomerCenterPage() {
                   minRows={4}
                   fullWidth
                   required
+                />
+
+                <Alert severity="warning" variant="outlined">
+                  {INQUIRY_NOTICE_LINES.map((line, index) => (
+                    <Typography key={`notice-${index}`} variant="body2">
+                      {line}
+                    </Typography>
+                  ))}
+                </Alert>
+
+                <Stack spacing={0.6}>
+                  <Button component="label" type="button" variant="outlined" sx={{ width: 'fit-content' }}>
+                    문의 이미지 선택(선택)
+                    <input hidden type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={handleImageChange} />
+                  </Button>
+                  <Typography variant="caption" color="text.secondary">
+                    허용 형식: PNG/JPG/WEBP/GIF · 용량: 최대 {formatBytes(INQUIRY_IMAGE_MAX_SIZE_BYTES)} · 해상도: {INQUIRY_IMAGE_MIN_WIDTH}x{INQUIRY_IMAGE_MIN_HEIGHT}px ~ {INQUIRY_IMAGE_MAX_WIDTH}x{INQUIRY_IMAGE_MAX_HEIGHT}px
+                  </Typography>
+                  {form.imageFile && (
+                    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', md: 'center' }}>
+                      <Typography variant="body2">
+                        첨부 파일: {form.imageFile.name} ({formatBytes(form.imageFile.size)})
+                      </Typography>
+                      <Button type="button" size="small" color="inherit" onClick={clearSelectedImage}>
+                        이미지 제거
+                      </Button>
+                    </Stack>
+                  )}
+                  {imagePreviewUrl && (
+                    <Box
+                      component="img"
+                      src={imagePreviewUrl}
+                      alt="문의 첨부 미리보기"
+                      sx={{
+                        width: 180,
+                        maxWidth: '100%',
+                        borderRadius: 1.6,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    />
+                  )}
+                </Stack>
+
+                <FormControlLabel
+                  control={(
+                    <Switch
+                      checked={noticeConfirmed}
+                      onChange={(event) => setNoticeConfirmed(event.target.checked)}
+                    />
+                  )}
+                  label="교환/환불 주의사항을 확인했습니다."
                 />
 
                 <Stack direction="row" spacing={1}>
@@ -399,6 +681,35 @@ function CustomerCenterPage() {
                 <Chip size="small" variant="outlined" label={`답변 대기 ${pendingCount}건`} />
                 <Chip size="small" variant="outlined" label={`답변 완료 ${answeredCount}건`} />
               </Stack>
+
+              <Stack spacing={0.8} sx={{ mt: 1.2 }}>
+                <TextField
+                  select
+                  size="small"
+                  label="상태 필터"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                >
+                  {INQUIRY_STATUS_FILTER_OPTIONS.map((option) => (
+                    <MenuItem key={`status-filter-${option.value}`} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  size="small"
+                  label="카테고리 필터"
+                  value={categoryFilter}
+                  onChange={(event) => setCategoryFilter(event.target.value)}
+                >
+                  {INQUIRY_CATEGORY_FILTER_OPTIONS.map((option) => (
+                    <MenuItem key={`category-filter-${option.value}`} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Stack>
             </Paper>
           </Stack>
 
@@ -415,8 +726,9 @@ function CustomerCenterPage() {
               <Typography color="text.secondary">등록된 문의가 없습니다. 첫 문의를 남겨 보세요.</Typography>
             ) : (
               <Stack spacing={1.1}>
-                {visibleInquiries.map((inquiry) => {
+                {visibleInquiries.map((inquiry, index) => {
                   const hasAnswer = Boolean(String(inquiry.answer || '').trim())
+                  const displayOrder = index + 1
 
                   return (
                     <Paper key={inquiry.id} variant="outlined" sx={{ p: 1.4, borderRadius: 2 }}>
@@ -427,7 +739,7 @@ function CustomerCenterPage() {
                           spacing={0.7}
                         >
                           <Typography fontWeight={700}>
-                            #{inquiry.id} {inquiry.title}
+                            내 문의 {displayOrder} {inquiry.title}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             {formatDateTime(inquiry.createdDate)}
@@ -441,6 +753,12 @@ function CustomerCenterPage() {
                             color={hasAnswer ? 'success' : 'default'}
                             label={hasAnswer ? '답변 완료' : '답변 대기'}
                           />
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            color="primary"
+                            label={getInquiryCategoryLabel(inquiry.category)}
+                          />
                           <Typography variant="caption" color="text.secondary">
                             상품명: {resolveProductName(inquiry.productId)}
                           </Typography>
@@ -451,6 +769,26 @@ function CustomerCenterPage() {
                             {inquiry.content}
                           </Typography>
                         </Paper>
+
+                        {inquiry.imageUrl && (
+                          <Stack spacing={0.6}>
+                            <Typography variant="caption" color="text.secondary">
+                              첨부 이미지
+                            </Typography>
+                            <Box
+                              component="img"
+                              src={resolveImageUrl(inquiry.imageUrl)}
+                              alt={`문의 ${displayOrder} 첨부 이미지`}
+                              sx={{
+                                width: 180,
+                                maxWidth: '100%',
+                                borderRadius: 1.6,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              }}
+                            />
+                          </Stack>
+                        )}
 
                         {hasAnswer && (
                           <Paper

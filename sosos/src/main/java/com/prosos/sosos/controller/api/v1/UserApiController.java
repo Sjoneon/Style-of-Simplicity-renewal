@@ -28,6 +28,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
+// 사용자 인증/프로필/최근본상품 API를 제공한다.
 public class UserApiController {
 
     private final UserService userService;
@@ -80,6 +81,7 @@ public class UserApiController {
                 throw new IllegalArgumentException("아이디와 비밀번호를 입력하세요.");
             }
 
+            // 로그인 아이디 형식으로 판매자/사용자 인증 경로를 분기한다.
             if (isBusinessNumber(username)) {
                 boolean isLoggedIn = sellerService.login(username, password);
                 if (!isLoggedIn) {
@@ -276,6 +278,7 @@ public class UserApiController {
     }
 
     private User resolveLoggedInUser(HttpSession session) {
+        // 사용자 전용 API는 Seller 세션을 허용하지 않고 User 세션만 통과시킨다.
         Object loggedInUser = session.getAttribute("loggedInUser");
         if (loggedInUser instanceof User user) {
             return user;

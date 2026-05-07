@@ -24,6 +24,9 @@ public class Product {
     @Column(name = "price", nullable = false)
     private double price;
 
+    @Column(name = "original_price")
+    private Double originalPrice;
+
     @Column(name = "quantity", nullable = false)
     private int quantity;
 
@@ -77,6 +80,7 @@ public class Product {
         this.name = productDto.getName();
         this.category = productDto.getCategory();
         this.price = productDto.getPrice();
+        this.originalPrice = productDto.getOriginalPrice();
         this.quantity = productDto.getQuantity();
         this.description = productDto.getDescription();
         this.situationScore = productDto.getSituationScore();
@@ -103,6 +107,9 @@ public class Product {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Double getOriginalPrice() { return originalPrice; }
+    public void setOriginalPrice(Double originalPrice) { this.originalPrice = originalPrice; }
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }

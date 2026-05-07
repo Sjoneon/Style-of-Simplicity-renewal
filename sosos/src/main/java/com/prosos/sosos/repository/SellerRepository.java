@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface SellerRepository extends JpaRepository<Seller, Long> {
-    // 사업자 번호로 판매자 조회
+    // 사업자번호 기준 판매자 조회
     Seller findByBusinessNumber(String businessNumber);
 }

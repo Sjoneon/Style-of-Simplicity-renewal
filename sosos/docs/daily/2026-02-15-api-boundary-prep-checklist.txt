@@ -1,0 +1,56 @@
+SOS API 경계 정리 전 준비 체크리스트
+작성일: 2026-02-15
+
+[목표]
+- 경계 정리 시작 전에 실행/환경 기준을 고정한다.
+- 이 파일 체크 후에만 Product/Order API 분리 작업에 들어간다.
+
+[A. 서버 실행 명령 (PowerShell)]
+1) 프로젝트 이동
+cd D:\Projects\Style-of-Simplicity\sosos
+
+2) 빌드
+.\mvnw.cmd clean package -DskipTests
+
+3) dev 실행 (기본)
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+
+4) prod 실행 (검증용)
+$env:SPRING_PROFILES_ACTIVE="prod"
+$env:DB_URL="jdbc:mysql://localhost:3306/SOS_db"
+$env:DB_USERNAME="<DB_USERNAME>"
+$env:DB_PASSWORD="<DB_PASSWORD>"
+.\mvnw.cmd spring-boot:run
+
+5) 헬스체크
+- 앱: http://localhost:8085/
+- Actuator health: http://localhost:8085/actuator/health
+- Actuator info: http://localhost:8085/actuator/info
+
+[B. 내가 따로 해야 하는 준비]
+- [ ] MySQL 서버 실행 확인
+- [ ] `SOS_db` 스키마 존재 확인
+- [ ] prod용 환경변수(DB_URL/DB_USERNAME/DB_PASSWORD) 주입 확인
+- [ ] 8085 포트 점유 프로세스 없는지 확인
+- [ ] 기존 주요 화면 진입 확인 (/, /users/login, /seller/dashboard)
+- [ ] 기존 API 호출 확인 (/api/products, /api/orders, /api/inquiries, /api/keywords)
+
+[C. 경계 정리 시작 전 백업]
+- [ ] 현재 브랜치/커밋 상태 기록 (`git status`, `git log -1 --oneline`)
+- [ ] DB 덤프 1회 백업 (스키마+기본 데이터)
+- [ ] 롤백 기준 메모: "어떤 URL/기능이 깨지면 되돌릴지" 1줄 기록
+
+[D. 경계 정리 작업 범위 선언]
+- [ ] View(Thymeleaf)와 API(JSON) 컨트롤러를 파일 단위로 분리
+- [ ] 신규 API 경로는 `/api/v1/*`로 시작
+- [ ] 공통 응답 형식 `success/data/message` 도입
+- [ ] 엔티티 직접 반환 금지, DTO 사용
+
+[E. 변경 후 최소 검증]
+- [ ] 뷰 URL 정상 동작 (페이지 렌더링)
+- [ ] API URL 정상 동작 (JSON 응답)
+- [ ] 로그인 세션 기반 API(장바구니/주문/문의) 401/200 분기 확인
+- [ ] dev/prod 둘 다 부팅 성공 확인
+
+[완료 기준(DoD)]
+- 위 체크 항목 완료 + dev/prod 실행 로그에서 에러 없이 핵심 URL 1회씩 검증 완료.

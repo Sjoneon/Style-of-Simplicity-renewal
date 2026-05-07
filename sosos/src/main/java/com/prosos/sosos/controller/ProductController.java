@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.prosos.sosos.dto.ProductDto;
 import com.prosos.sosos.dto.ProductOptionDto;
+import com.prosos.sosos.model.Seller;
 import com.prosos.sosos.model.User;
 import com.prosos.sosos.service.SellerService;
 import com.prosos.sosos.service.UserService;
@@ -48,12 +49,17 @@ public class ProductController {
             @RequestParam("image") MultipartFile imageFile,
             @RequestParam(value = "descriptionImage", required = false) MultipartFile descriptionImageFile,
             @RequestParam("keywords") String keywordsJson,
-            @RequestParam(value = "options", required = false) String optionsJson
+            @RequestParam(value = "options", required = false) String optionsJson,
+            HttpSession session
     ) throws IOException {
+        Seller seller = resolveLoggedInSeller(session);
+        if (seller == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         Map<String, List<String>> keywords = objectMapper.readValue(keywordsJson, new TypeReference<>() {
         });
         List<ProductOptionDto> optionDtos = parseOptionDtos(optionsJson, Collections.emptyList());
-        sellerService.addProduct(productDto, imageFile, keywords, descriptionImageFile, optionDtos);
+        sellerService.addProductForSeller(seller.getId(), productDto, imageFile, keywords, descriptionImageFile, optionDtos);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Location", "http://localhost:8085/seller/dashboard");
@@ -78,16 +84,33 @@ public class ProductController {
             @ModelAttribute ProductDto productDto,
             @RequestParam(value = "image", required = false) MultipartFile imageFile,
             @RequestParam(value = "descriptionImage", required = false) MultipartFile descriptionImageFile,
-            @RequestParam(value = "options", required = false) String optionsJson
+            @RequestParam(value = "options", required = false) String optionsJson,
+            HttpSession session
     ) throws IOException {
+        Seller seller = resolveLoggedInSeller(session);
+        if (seller == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         List<ProductOptionDto> optionDtos = parseOptionDtos(optionsJson, null);
-        ProductDto updatedProduct = sellerService.updateProduct(productId, productDto, imageFile, descriptionImageFile, optionDtos);
+        ProductDto updatedProduct = sellerService.updateProductForSeller(
+                seller.getId(),
+                productId,
+                productDto,
+                imageFile,
+                descriptionImageFile,
+                null,
+                optionDtos
+        );
         return ResponseEntity.ok(updatedProduct);
     }
 
     @DeleteMapping("/delete/{productId}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long productId) {
-        sellerService.deleteProduct(productId);
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long productId, HttpSession session) {
+        Seller seller = resolveLoggedInSeller(session);
+        if (seller == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        sellerService.deleteProductForSeller(productId, seller.getId());
         return ResponseEntity.noContent().build();
     }
 
@@ -176,6 +199,14 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("구매 처리 중 오류");
         }
+    }
+
+    private Seller resolveLoggedInSeller(HttpSession session) {
+        Object loggedInUser = session.getAttribute("loggedInUser");
+        if (loggedInUser instanceof Seller seller) {
+            return seller;
+        }
+        return null;
     }
 
     private List<ProductOptionDto> parseOptionDtos(String optionsJson, List<ProductOptionDto> defaultValue) throws IOException {

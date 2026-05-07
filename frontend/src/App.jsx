@@ -5,6 +5,9 @@ import RequireAuth from './components/RequireAuth'
 import AdminLoginPage from './pages/AdminLoginPage'
 import AuthPage from './pages/AuthPage'
 import CartPage from './pages/CartPage'
+import CheckoutPage from './pages/CheckoutPage'
+import CheckoutTossFailPage from './pages/CheckoutTossFailPage'
+import CheckoutTossSuccessPage from './pages/CheckoutTossSuccessPage'
 import CustomerCenterPage from './pages/CustomerCenterPage'
 import HomePage from './pages/HomePage'
 import MyPagePage from './pages/MyPagePage'
@@ -25,6 +28,9 @@ function App() {
 
         <Route element={<RequireAuth allowedTypes={['user']} />}>
           <Route path="cart" element={<CartPage />} />
+          <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="checkout/toss/success" element={<CheckoutTossSuccessPage />} />
+          <Route path="checkout/toss/fail" element={<CheckoutTossFailPage />} />
         </Route>
 
         <Route element={<RequireAuth allowedTypes={['user', 'seller']} />}>

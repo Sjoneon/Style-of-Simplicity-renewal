@@ -13,8 +13,8 @@ export async function fetchMyOrders() {
   return ensureApiSuccess(await api.get('/api/v1/orders/me'))
 }
 
-export async function fetchSellerOrders(sellerId) {
-  return ensureApiSuccess(await api.get('/api/v1/orders/seller', { params: { sellerId } }))
+export async function fetchSellerOrders() {
+  return ensureApiSuccess(await api.get('/api/v1/orders/seller'))
 }
 
 export async function updateOrderStatus(orderId, action) {

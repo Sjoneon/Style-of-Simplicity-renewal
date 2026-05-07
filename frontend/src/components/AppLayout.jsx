@@ -15,6 +15,7 @@ import ShoppingBagOutlinedIcon from '@mui/icons-material/ShoppingBagOutlined'
 import { Link as RouterLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { fetchMyNotificationSummary } from '../services/notificationApi'
+import AiStylistWidget from './AiStylistWidget'
 
 function AppLayout() {
   const navigate = useNavigate()
@@ -128,7 +129,7 @@ function AppLayout() {
             </Button>
             {user?.userType === 'seller' && (
               <Button component={RouterLink} to="/admin/dashboard" color="inherit">
-                슈퍼관리자 대시보드
+                판매자 대시보드
               </Button>
             )}
 
@@ -168,6 +169,8 @@ function AppLayout() {
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 } }}>
         <Outlet />
       </Container>
+
+      <AiStylistWidget />
     </Box>
   )
 }

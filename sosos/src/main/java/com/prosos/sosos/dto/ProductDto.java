@@ -15,11 +15,13 @@ public class ProductDto {
     private String name;
     private String category;
     private double price;
+    private Double originalPrice;
     private int quantity;
     private String description;
     private Integer situationScore;
     private String imageUrl;
     private Long sellerId;
+    private String sellerName;
     private String descriptionImageUrl;
     private List<ProductOptionDto> options = new ArrayList<>();
     private Long selectedOptionId;
@@ -32,6 +34,7 @@ public class ProductDto {
     private Boolean showInWorkTab;
     private Integer soldCount;
     private List<String> discoveryTabKeys = new ArrayList<>();
+    private List<String> keywords = new ArrayList<>();
 
     public ProductDto() {
     }
@@ -41,11 +44,13 @@ public class ProductDto {
         this.name = product.getName();
         this.category = product.getCategory();
         this.price = product.getPrice();
+        this.originalPrice = product.getOriginalPrice();
         this.quantity = product.getQuantity();
         this.description = product.getDescription();
         this.situationScore = product.getSituationScore();
         this.imageUrl = product.getImageUrl();
         this.sellerId = (product.getSeller() != null) ? product.getSeller().getId() : null;
+        this.sellerName = (product.getSeller() != null) ? product.getSeller().getName() : null;
         this.descriptionImageUrl = product.getDescriptionImageUrl();
         this.showInStarterTab = product.getShowInStarterTab();
         this.showInGiftTab = product.getShowInGiftTab();
@@ -54,6 +59,7 @@ public class ProductDto {
         this.showInWorkTab = product.getShowInWorkTab();
         this.soldCount = 0;
         this.discoveryTabKeys = parseDiscoveryTabKeys(product.getDiscoveryTabKeys());
+        this.keywords = parseKeywords(product);
 
         if (product.getOptions() != null) {
             this.options = product.getOptions().stream()
@@ -97,6 +103,14 @@ public class ProductDto {
         this.price = price;
     }
 
+    public Double getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public void setOriginalPrice(Double originalPrice) {
+        this.originalPrice = originalPrice;
+    }
+
     public int getQuantity() {
         return quantity;
     }
@@ -135,6 +149,14 @@ public class ProductDto {
 
     public void setSellerId(Long sellerId) {
         this.sellerId = sellerId;
+    }
+
+    public String getSellerName() {
+        return sellerName;
+    }
+
+    public void setSellerName(String sellerName) {
+        this.sellerName = sellerName;
     }
 
     public String getDescriptionImageUrl() {
@@ -247,6 +269,28 @@ public class ProductDto {
         this.discoveryTabKeys = new ArrayList<>(dedupe);
     }
 
+    public List<String> getKeywords() {
+        return keywords;
+    }
+
+    public void setKeywords(List<String> keywords) {
+        if (keywords == null) {
+            this.keywords = null;
+            return;
+        }
+        Set<String> dedupe = new LinkedHashSet<>();
+        for (String keyword : keywords) {
+            if (keyword == null) {
+                continue;
+            }
+            String normalized = keyword.trim();
+            if (!normalized.isBlank()) {
+                dedupe.add(normalized);
+            }
+        }
+        this.keywords = new ArrayList<>(dedupe);
+    }
+
     public String toDiscoveryTabKeysCsv() {
         if (discoveryTabKeys == null || discoveryTabKeys.isEmpty()) {
             return null;
@@ -262,6 +306,19 @@ public class ProductDto {
         Arrays.stream(rawValue.split(","))
                 .map(String::trim)
                 .filter(value -> !value.isBlank())
+                .forEach(dedupe::add);
+        return new ArrayList<>(dedupe);
+    }
+
+    private static List<String> parseKeywords(Product product) {
+        if (product.getProductKeywords() == null || product.getProductKeywords().isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<String> dedupe = new LinkedHashSet<>();
+        product.getProductKeywords().stream()
+                .map(productKeyword -> productKeyword.getKeyword() == null ? null : productKeyword.getKeyword().getKeyword())
+                .filter(keyword -> keyword != null && !keyword.isBlank())
+                .map(String::trim)
                 .forEach(dedupe::add);
         return new ArrayList<>(dedupe);
     }

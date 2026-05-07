@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Controller
 @RequestMapping("/seller")
+// 판매자 레거시 화면(회원가입/로그인/대시보드/상품관리) 진입을 담당한다.
 public class SellerController {
 
     private final SellerService sellerService;
@@ -65,8 +66,14 @@ public class SellerController {
 
     @PostMapping("/products/product_register")
     public String addProduct(@ModelAttribute ProductDto productDto,
-                             @RequestParam("image") MultipartFile imageFile) {
-        sellerService.addProduct(productDto, imageFile, null, null, null);
+                             @RequestParam("image") MultipartFile imageFile,
+                             HttpSession session) {
+        // 판매자 세션이 없으면 등록 페이지를 바로 사용하지 못하도록 로그인으로 보낸다.
+        Seller seller = (Seller) session.getAttribute("loggedInUser");
+        if (seller == null) {
+            return "redirect:/seller/login";
+        }
+        sellerService.addProductForSeller(seller.getId(), productDto, imageFile, null, null, null);
         return "redirect:/seller/products";
     }
 
@@ -77,8 +84,13 @@ public class SellerController {
     }
 
     @PostMapping("/products/delete/{productId}")
-    public String deleteProduct(@PathVariable Long productId) {
-        sellerService.deleteProduct(productId);
+    public String deleteProduct(@PathVariable Long productId, HttpSession session) {
+        // 삭제도 소유권 검증을 위해 세션 판매자 기준으로 수행한다.
+        Seller seller = (Seller) session.getAttribute("loggedInUser");
+        if (seller == null) {
+            return "redirect:/seller/login";
+        }
+        sellerService.deleteProductForSeller(productId, seller.getId());
         return "redirect:/seller/products";
     }
 

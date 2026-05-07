@@ -13,6 +13,11 @@ import com.prosos.sosos.repository.KeywordRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.ProductOptionRepository;
 import com.prosos.sosos.repository.SellerRepository;
+import com.prosos.sosos.repository.CartRepository;
+import com.prosos.sosos.repository.WishlistItemRepository;
+import com.prosos.sosos.repository.RecentProductViewRepository;
+import com.prosos.sosos.repository.ProductReviewRepository;
+import com.prosos.sosos.repository.MainBannerRepository;
 import com.prosos.sosos.service.storage.FileStorageService;
 
 import jakarta.servlet.http.HttpSession;
@@ -44,6 +49,11 @@ public class SellerService {
     private final ProductOptionRepository productOptionRepository;
     private final OrderRepository orderRepository;
     private final InquiryRepository inquiryRepository;
+    private final CartRepository cartRepository;
+    private final WishlistItemRepository wishlistItemRepository;
+    private final RecentProductViewRepository recentProductViewRepository;
+    private final ProductReviewRepository productReviewRepository;
+    private final MainBannerRepository mainBannerRepository;
     private final KeywordRepository keywordRepository;
     private final NotificationService notificationService;
     private final PasswordEncoder passwordEncoder;
@@ -54,6 +64,10 @@ public class SellerService {
     public SellerService(SellerRepository sellerRepository, ProductRepository productRepository,
                          ProductOptionRepository productOptionRepository,
                          OrderRepository orderRepository, InquiryRepository inquiryRepository,
+                         CartRepository cartRepository, WishlistItemRepository wishlistItemRepository,
+                         RecentProductViewRepository recentProductViewRepository,
+                         ProductReviewRepository productReviewRepository,
+                         MainBannerRepository mainBannerRepository,
                          KeywordRepository keywordRepository, NotificationService notificationService,
                          PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
         this.sellerRepository = sellerRepository;
@@ -61,6 +75,11 @@ public class SellerService {
         this.productOptionRepository = productOptionRepository;
         this.orderRepository = orderRepository;
         this.inquiryRepository = inquiryRepository;
+        this.cartRepository = cartRepository;
+        this.wishlistItemRepository = wishlistItemRepository;
+        this.recentProductViewRepository = recentProductViewRepository;
+        this.productReviewRepository = productReviewRepository;
+        this.mainBannerRepository = mainBannerRepository;
         this.keywordRepository = keywordRepository;
         this.notificationService = notificationService;
         this.passwordEncoder = passwordEncoder;
@@ -70,7 +89,7 @@ public class SellerService {
     // 1.1.1 판매자 회원가입
     public Seller registerSeller(Seller seller) {
         if (seller.getPassword() == null || seller.getPassword().isBlank()) {
-            throw new IllegalArgumentException("비밀번호 입력");
+            throw new IllegalArgumentException("비밀번호를 입력해 주세요.");
         }
         seller.setPassword(passwordEncoder.encode(seller.getPassword()));
         return sellerRepository.save(seller);
@@ -84,7 +103,7 @@ public class SellerService {
 
     // 1.1.3 판매자 로그아웃
     public void logout(Long sellerId) {
-        // 세션 기반 로그아웃, 현재 구현은 상위 레이어 session.invalidate 처리
+        // 세션 기반 로그아웃은 상위 레이어(컨트롤러)에서 session.invalidate()로 처리한다.
     }
 
     // 1.2.1 상품 등록
@@ -99,6 +118,7 @@ public class SellerService {
         product.setName(productDto.getName());
         product.setCategory(productDto.getCategory());
         product.setPrice(productDto.getPrice());
+        product.setOriginalPrice(normalizeOriginalPrice(productDto.getOriginalPrice(), productDto.getPrice()));
         product.setDescription(productDto.getDescription());
         product.setSituationScore(productDto.getSituationScore());
         applyDiscoveryTabExposure(product, productDto);
@@ -129,12 +149,26 @@ public class SellerService {
 
         return new ProductDto(savedProduct);
     }
+
+    public ProductDto addProductForSeller(
+            Long sellerId,
+            ProductDto productDto,
+            MultipartFile imageFile,
+            Map<String, List<String>> keywords,
+            MultipartFile descriptionImageFile,
+            List<ProductOptionDto> optionDtos
+    ) {
+        if (sellerId == null) {
+            throw new IllegalArgumentException("판매자 로그인 정보가 없습니다.");
+        }
+        productDto.setSellerId(sellerId);
+        return addProduct(productDto, imageFile, keywords, descriptionImageFile, optionDtos);
+    }
     
     
     
 
     // 상품 키워드 저장
-    
     private void saveKeywords(Product product, Map<String, List<String>> keywords) {
         if (keywords == null || keywords.isEmpty()) {
             return;
@@ -182,15 +216,15 @@ public class SellerService {
 
             String sizeLabel = optionDto.getSizeLabel() == null ? "" : optionDto.getSizeLabel().trim().toUpperCase();
             if (sizeLabel.isBlank()) {
-                throw new IllegalArgumentException("사이즈 라벨 입력");
+                throw new IllegalArgumentException("사이즈 값을 입력해 주세요.");
             }
             if (!dedupe.add(sizeLabel)) {
-                throw new IllegalArgumentException("중복 사이즈 라벨: " + sizeLabel);
+                throw new IllegalArgumentException("중복 사이즈 값: " + sizeLabel);
             }
 
             int quantity = optionDto.getQuantity() == null ? 0 : optionDto.getQuantity();
             if (quantity < 0) {
-                throw new IllegalArgumentException("옵션 수량은 0 이상");
+                throw new IllegalArgumentException("옵션 수량은 0 이상이어야 합니다.");
             }
 
             ProductOption option = new ProductOption();
@@ -205,7 +239,7 @@ public class SellerService {
         }
 
         if (product.getOptions().isEmpty()) {
-            throw new IllegalArgumentException("최소 1개 옵션 필요");
+            throw new IllegalArgumentException("최소 1개 옵션이 필요합니다.");
         }
 
         product.setQuantity(totalQuantity);
@@ -270,6 +304,7 @@ public class SellerService {
             ProductDto productDto,
             MultipartFile imageFile,
             MultipartFile descriptionImageFile,
+            Map<String, List<String>> keywords,
             List<ProductOptionDto> optionDtos
     ) {
         Product product = productRepository.findById(productId)
@@ -281,6 +316,7 @@ public class SellerService {
         product.setName(productDto.getName());
         product.setCategory(productDto.getCategory());
         product.setPrice(productDto.getPrice());
+        product.setOriginalPrice(normalizeOriginalPrice(productDto.getOriginalPrice(), productDto.getPrice()));
         product.setDescription(productDto.getDescription());
         product.setSituationScore(productDto.getSituationScore());
         applyDiscoveryTabExposure(product, productDto);
@@ -305,10 +341,28 @@ public class SellerService {
             product.setQuantity(Math.max(productDto.getQuantity(), 0));
         }
 
+        if (keywords != null) {
+            product.getProductKeywords().clear();
+            saveKeywords(product, keywords);
+        }
+
         Product updatedProduct = productRepository.save(product);
-        // 재입고/할인 조건을 만족하면 찜 사용자에게 알림 전송.
+        // 가격 또는 재고 변경 조건을 만족하면 찜 사용자에게 알림을 전송한다.
         notificationService.notifyProductUpdatedForWishlist(updatedProduct, previousPrice, previousQuantity);
         return new ProductDto(updatedProduct);
+    }
+
+    public ProductDto updateProductForSeller(
+            Long sellerId,
+            Long productId,
+            ProductDto productDto,
+            MultipartFile imageFile,
+            MultipartFile descriptionImageFile,
+            Map<String, List<String>> keywords,
+            List<ProductOptionDto> optionDtos
+    ) {
+        requireProductOwnership(productId, sellerId);
+        return updateProduct(productId, productDto, imageFile, descriptionImageFile, keywords, optionDtos);
     }
     
     
@@ -327,8 +381,23 @@ public class SellerService {
 
 
     // 1.2.3 상품 삭제
+    @Transactional
     public void deleteProduct(Long productId) {
+        // FK 제약 오류를 막기 위해 참조 데이터를 먼저 정리한 뒤 상품 본문을 삭제한다.
+        mainBannerRepository.deleteByTargetProductId(productId);
+        inquiryRepository.deleteByProductId(productId);
+        recentProductViewRepository.deleteByProductId(productId);
+        wishlistItemRepository.deleteByProductId(productId);
+        cartRepository.deleteByProduct_Id(productId);
+        productReviewRepository.deleteByProduct_Id(productId);
+        orderRepository.deleteByProduct_Id(productId);
         productRepository.deleteById(productId);
+    }
+
+    @Transactional
+    public void deleteProductForSeller(Long productId, Long sellerId) {
+        requireProductOwnership(productId, sellerId);
+        deleteProduct(productId);
     }
 
     // 1.2.4 상품명 검색
@@ -342,6 +411,17 @@ public class SellerService {
     // 1.2.5 전체 상품 조회
     public List<ProductDto> getAllProducts() {
         List<Product> products = productRepository.findAll();
+        List<ProductDto> productDtos = products.stream().map(ProductDto::new).toList();
+        attachSoldCount(productDtos);
+        return productDtos;
+    }
+
+    // 판매자 본인 상품만 조회
+    public List<ProductDto> getProductsBySeller(Long sellerId) {
+        if (sellerId == null) {
+            throw new IllegalArgumentException("판매자 로그인 정보가 없습니다.");
+        }
+        List<Product> products = productRepository.findBySeller_Id(sellerId);
         List<ProductDto> productDtos = products.stream().map(ProductDto::new).toList();
         attachSoldCount(productDtos);
         return productDtos;
@@ -368,52 +448,44 @@ public class SellerService {
     }
     
     
-    // 1.3.1 주문 상태 처리중 변경
-    @Transactional
+    // 1.3.1 주문 상태를 처리중으로 변경
     public void processOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
-        String previousStatus = order.getStatus();
-        order.setStatus("PROCESSED");
-        orderRepository.save(order);
-        // 상태 변경이 저장된 뒤 알림 전송.
-        notificationService.notifyOrderStatusChanged(order, previousStatus);
+        updateOrderStatus(orderId, "PROCESSED");
     }
 
-    // 1.3.2 주문 취소 변경
-    @Transactional
+    // 1.3.2 주문 상태를 취소로 변경
     public void cancelOrder(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
-        String previousStatus = order.getStatus();
-        order.setStatus("CANCELLED");
-        orderRepository.save(order);
-        // 상태 변경이 저장된 뒤 알림 전송.
-        notificationService.notifyOrderStatusChanged(order, previousStatus);
+        updateOrderStatus(orderId, "CANCELLED");
     }
 
-    // 1.3.3 주문 반품 변경
-    @Transactional
+    // 1.3.3 주문 상태를 반품으로 변경
     public void processReturn(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
-        String previousStatus = order.getStatus();
-        order.setStatus("RETURNED");
-        orderRepository.save(order);
-        // 상태 변경이 저장된 뒤 알림 전송.
-        notificationService.notifyOrderStatusChanged(order, previousStatus);
+        updateOrderStatus(orderId, "RETURNED");
     }
 
-    // 1.3.4 주문 교환 변경
-    @Transactional
+    // 1.3.4 주문 상태를 교환으로 변경
     public void processExchange(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
-        String previousStatus = order.getStatus();
-        order.setStatus("EXCHANGED");
-        orderRepository.save(order);
-        // 상태 변경이 저장된 뒤 알림 전송.
-        notificationService.notifyOrderStatusChanged(order, previousStatus);
+        updateOrderStatus(orderId, "EXCHANGED");
+    }
+
+    @Transactional
+    public void processOrderForSeller(Long orderId, Long sellerId) {
+        updateOrderStatusForSeller(orderId, sellerId, "PROCESSED");
+    }
+
+    @Transactional
+    public void cancelOrderForSeller(Long orderId, Long sellerId) {
+        updateOrderStatusForSeller(orderId, sellerId, "CANCELLED");
+    }
+
+    @Transactional
+    public void processReturnForSeller(Long orderId, Long sellerId) {
+        updateOrderStatusForSeller(orderId, sellerId, "RETURNED");
+    }
+
+    @Transactional
+    public void processExchangeForSeller(Long orderId, Long sellerId) {
+        updateOrderStatusForSeller(orderId, sellerId, "EXCHANGED");
     }
 
 
@@ -440,7 +512,7 @@ public class SellerService {
 
         if (hasOptions) {
             if (optionId == null) {
-                throw new IllegalArgumentException("사이즈 선택");
+                throw new IllegalArgumentException("사이즈를 선택해 주세요.");
             }
 
             ProductOption option = productOptionRepository.findByIdForUpdate(optionId)
@@ -484,6 +556,39 @@ public class SellerService {
         return orderRepository.findByProduct_Seller(seller);
     }
 
+    private void updateOrderStatus(Long orderId, String nextStatus) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
+        String previousStatus = order.getStatus();
+        order.setStatus(nextStatus);
+        orderRepository.save(order);
+        notificationService.notifyOrderStatusChanged(order, previousStatus);
+    }
+
+    private void updateOrderStatusForSeller(Long orderId, Long sellerId, String nextStatus) {
+        requireOrderOwnership(orderId, sellerId);
+        updateOrderStatus(orderId, nextStatus);
+    }
+
+    private void requireProductOwnership(Long productId, Long sellerId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+        Long ownerSellerId = product.getSeller() == null ? null : product.getSeller().getId();
+        if (ownerSellerId == null || !ownerSellerId.equals(sellerId)) {
+            throw new SecurityException("해당 상품을 관리할 권한이 없습니다.");
+        }
+    }
+
+    private void requireOrderOwnership(Long orderId, Long sellerId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다."));
+        Product product = order.getProduct();
+        Long ownerSellerId = product == null || product.getSeller() == null ? null : product.getSeller().getId();
+        if (ownerSellerId == null || !ownerSellerId.equals(sellerId)) {
+            throw new SecurityException("해당 주문을 처리할 권한이 없습니다.");
+        }
+    }
+
     // 1.4.1 문의 답변 등록
     public void answerInquiry(Long inquiryId, String answer) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
@@ -493,7 +598,7 @@ public class SellerService {
         inquiry.setSellerName("SOS 운영팀");
         inquiry.setAnsweredDate(LocalDateTime.now());
         inquiryRepository.save(inquiry);
-        // 답변 등록/수정 후 문의 작성자에게 알림 전송.
+        // 답변 등록/수정 시 문의 작성자에게 알림을 전송한다.
         notificationService.notifyInquiryAnswered(inquiry, existedAnswer);
     }
 
@@ -512,14 +617,14 @@ public class SellerService {
                 .orElseThrow(() -> new IllegalArgumentException("문의를 찾을 수 없습니다."));
         inquiry.setAnswer(newAnswer);
         inquiryRepository.save(inquiry);
-        // 이 경로는 답변 수정이므로 updated=true로 처리.
+        // 기존 답변이 있는 수정이므로 updated=true로 처리한다.
         notificationService.notifyInquiryAnswered(inquiry, true);
     }
 
     // 1.5.1 키워드 관리
     public void manageKeyword(String keyword, boolean add) {
         if (add) {
-            // 키워드 신규 등록
+            // 신규 키워드 등록
             Keyword newKeyword = new Keyword(keyword, ""); // 타입은 빈 문자열
             keywordRepository.save(newKeyword);
         } else {
@@ -554,7 +659,7 @@ public class SellerService {
                 return true;
             }
         } catch (IllegalArgumentException ignored) {
-            // 기존 데이터에 평문 비밀번호가 남아 있을 수 있음.
+            // 기존 데이터에 평문 비밀번호가 남아 있을 수 있어 예외를 무시한다.
         }
 
         if (storedPassword.equals(rawPassword)) {
@@ -565,6 +670,25 @@ public class SellerService {
 
         return false;
     }
+
+    private Double normalizeOriginalPrice(Double originalPrice, double salePrice) {
+        if (originalPrice == null) {
+            return null;
+        }
+        if (!Double.isFinite(originalPrice) || originalPrice < 0) {
+            throw new IllegalArgumentException("정상가는 0 이상의 숫자로 입력해 주세요.");
+        }
+        if (originalPrice < salePrice) {
+            throw new IllegalArgumentException("정상가는 판매가 이상이어야 합니다.");
+        }
+        // 정상가와 판매가가 같으면 할인으로 볼 필요가 없어 null로 정리해 할인 UI를 숨긴다.
+        if (Double.compare(originalPrice, salePrice) == 0) {
+            return null;
+        }
+        return originalPrice;
+    }
 }
+
+
 
 

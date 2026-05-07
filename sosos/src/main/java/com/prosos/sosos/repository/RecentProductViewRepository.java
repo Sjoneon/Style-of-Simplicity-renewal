@@ -10,9 +10,11 @@ import java.util.Optional;
 @Repository
 public interface RecentProductViewRepository extends JpaRepository<RecentProductView, Long> {
 
-    // 사용자별 최근 본 상품 20건 최신순 조회
+    // 사용자 기준 최근 본 상품 20건 조회
     List<RecentProductView> findTop20ByUserIdOrderByViewedAtDesc(Long userId);
 
-    // 사용자-상품 조합 레코드 조회, 업서트 처리용
+    // 사용자-상품 조합 레코드 조회
     Optional<RecentProductView> findByUserIdAndProductId(Long userId, Long productId);
+
+    void deleteByProductId(Long productId);
 }
