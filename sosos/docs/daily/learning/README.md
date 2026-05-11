@@ -128,5 +128,6 @@
 - [2026-05-10-turnstile-env-slot-learning.md](./2026-05-10-turnstile-env-slot-learning.md)
 - [2026-05-11-korean-comment-and-garbled-audit-learning.md](./2026-05-11-korean-comment-and-garbled-audit-learning.md)
 - [2026-05-11-compile-missing-dependency-recovery-learning.md](./2026-05-11-compile-missing-dependency-recovery-learning.md)
+- [2026-05-11-hibernate-like-escape-fix-learning.md](./2026-05-11-hibernate-like-escape-fix-learning.md)
 
 
