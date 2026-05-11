@@ -10,7 +10,9 @@ import com.prosos.sosos.repository.InquiryRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.UserRepository;
 import com.prosos.sosos.service.NotificationService;
+import com.prosos.sosos.service.security.TurnstileVerificationService;
 import com.prosos.sosos.service.storage.FileStorageService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -60,19 +62,22 @@ public class InquiryController {
     private final ProductRepository productRepository;
     private final NotificationService notificationService;
     private final FileStorageService fileStorageService;
+    private final TurnstileVerificationService turnstileVerificationService;
 
     public InquiryController(
             InquiryRepository inquiryRepository,
             UserRepository userRepository,
             ProductRepository productRepository,
             NotificationService notificationService,
-            FileStorageService fileStorageService
+            FileStorageService fileStorageService,
+            TurnstileVerificationService turnstileVerificationService
     ) {
         this.inquiryRepository = inquiryRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
         this.notificationService = notificationService;
         this.fileStorageService = fileStorageService;
+        this.turnstileVerificationService = turnstileVerificationService;
     }
 
     @GetMapping
@@ -102,17 +107,23 @@ public class InquiryController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> createInquiryAsJson(HttpSession session, @RequestBody InquiryCreateRequest request) {
-        return createInquiryInternal(session, request, null);
+    public ResponseEntity<?> createInquiryAsJson(
+            HttpSession session,
+            HttpServletRequest servletRequest,
+            @RequestBody InquiryCreateRequest request
+    ) {
+        return createInquiryInternal(session, servletRequest, request, null);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createInquiryAsMultipart(
             HttpSession session,
+            HttpServletRequest servletRequest,
             @RequestParam("title") String title,
             @RequestParam("content") String content,
             @RequestParam(value = "productId", required = false) Long productId,
             @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "turnstileToken", required = false) String turnstileToken,
             @RequestParam(value = "image", required = false) MultipartFile imageFile
     ) {
         InquiryCreateRequest request = new InquiryCreateRequest();
@@ -120,13 +131,37 @@ public class InquiryController {
         request.setContent(content);
         request.setProductId(productId);
         request.setCategory(category);
-        return createInquiryInternal(session, request, imageFile);
+        request.setTurnstileToken(turnstileToken);
+        return createInquiryInternal(session, servletRequest, request, imageFile);
     }
 
-    private ResponseEntity<?> createInquiryInternal(HttpSession session, InquiryCreateRequest request, MultipartFile imageFile) {
+    private ResponseEntity<?> createInquiryInternal(
+            HttpSession session,
+            HttpServletRequest servletRequest,
+            InquiryCreateRequest request,
+            MultipartFile imageFile
+    ) {
+        // 문의 작성은 로그인 사용자만 허용한다.
         User user = resolveLoggedInUser(session);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        try {
+            // Turnstile 토큰은 요청마다 서버에서 검증한다.
+            String turnstileToken = request == null ? null : request.getTurnstileToken();
+            turnstileVerificationService.verifyOrThrow(turnstileToken, servletRequest);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "보안 검증 설정 오류입니다. 관리자에게 문의해 주세요."));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", e.getMessage()));
+        }
+
+        if (request == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "문의 정보를 입력해 주세요."));
         }
 
         String title = trimToEmpty(request.getTitle());
@@ -276,9 +311,11 @@ public class InquiryController {
     }
 
     private boolean canSellerAccessInquiry(Inquiry inquiry, Long sellerId) {
+        // 사이트 공통 문의(productId 없음)는 운영자가 모두 확인할 수 있다.
         if (inquiry.getProductId() == null) {
             return true;
         }
+        // 상품 문의는 해당 상품 소유 판매자만 접근 가능하다.
         return productRepository.findById(inquiry.getProductId())
                 .map(Product::getSeller)
                 .map(Seller::getId)
@@ -320,6 +357,7 @@ public class InquiryController {
 
     // 저장 코드는 영어로 통일하되, 입력 변형(한글/별칭)은 여기서 매핑한다.
     private String normalizeCategory(String rawCategory) {
+        // 입력 변형(한글/기호/공백)을 정규화한 뒤 서버 저장 코드로 매핑한다.
         String normalized = trimToEmpty(rawCategory)
                 .toUpperCase()
                 .replace(" ", "")

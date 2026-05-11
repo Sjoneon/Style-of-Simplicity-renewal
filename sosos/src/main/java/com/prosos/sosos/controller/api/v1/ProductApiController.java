@@ -77,14 +77,27 @@ public class ProductApiController {
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<ProductDto>>> searchProductsByTitle(@RequestParam String title) {
-        List<ProductDto> products = sellerService.searchProductsByTitle(title);
-        return ResponseEntity.ok(ApiResponse.success(products, "상품 검색 성공"));
+        try {
+            // 서비스 계층에서 SQLi 가드 검증을 통과한 검색어만 조회한다.
+            List<ProductDto> products = sellerService.searchProductsByTitle(title);
+            return ResponseEntity.ok(ApiResponse.success(products, "상품 검색 성공"));
+        } catch (IllegalArgumentException e) {
+            // 위험 패턴/잘못된 검색어는 400으로 명확히 반환한다.
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure(e.getMessage()));
+        }
     }
 
     @GetMapping("/category")
     public ResponseEntity<ApiResponse<List<ProductDto>>> getProductsByCategory(@RequestParam String category) {
-        List<ProductDto> products = sellerService.getProductsByCategory(category);
-        return ResponseEntity.ok(ApiResponse.success(products, "카테고리 조회 성공"));
+        try {
+            // 카테고리 입력도 동일한 가드 검증 후 조회한다.
+            List<ProductDto> products = sellerService.getProductsByCategory(category);
+            return ResponseEntity.ok(ApiResponse.success(products, "카테고리 조회 성공"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.failure(e.getMessage()));
+        }
     }
 
     @PostMapping

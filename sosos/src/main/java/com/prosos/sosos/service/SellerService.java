@@ -18,6 +18,7 @@ import com.prosos.sosos.repository.WishlistItemRepository;
 import com.prosos.sosos.repository.RecentProductViewRepository;
 import com.prosos.sosos.repository.ProductReviewRepository;
 import com.prosos.sosos.repository.MainBannerRepository;
+import com.prosos.sosos.service.security.SqlInputGuardService;
 import com.prosos.sosos.service.storage.FileStorageService;
 
 import jakarta.servlet.http.HttpSession;
@@ -58,6 +59,7 @@ public class SellerService {
     private final NotificationService notificationService;
     private final PasswordEncoder passwordEncoder;
     private final FileStorageService fileStorageService;
+    private final SqlInputGuardService sqlInputGuardService;
     private static final Set<String> EXCLUDED_RANKING_STATUSES = Set.of("CANCELLED", "RETURNED");
 
     @Autowired
@@ -69,7 +71,8 @@ public class SellerService {
                          ProductReviewRepository productReviewRepository,
                          MainBannerRepository mainBannerRepository,
                          KeywordRepository keywordRepository, NotificationService notificationService,
-                         PasswordEncoder passwordEncoder, FileStorageService fileStorageService) {
+                         PasswordEncoder passwordEncoder, FileStorageService fileStorageService,
+                         SqlInputGuardService sqlInputGuardService) {
         this.sellerRepository = sellerRepository;
         this.productRepository = productRepository;
         this.productOptionRepository = productOptionRepository;
@@ -84,6 +87,7 @@ public class SellerService {
         this.notificationService = notificationService;
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
+        this.sqlInputGuardService = sqlInputGuardService;
     }
 
     // 1.1.1 판매자 회원가입
@@ -402,7 +406,11 @@ public class SellerService {
 
     // 1.2.4 상품명 검색
     public List<ProductDto> searchProductsByTitle(String title) {
-        List<Product> products = productRepository.findByNameContaining(title);
+        // 1차 방어: 길이/제어문자/대표 SQLi 패턴을 차단한다.
+        String safeTitle = sqlInputGuardService.sanitizeSearchTerm(title, "검색어", 80);
+        // 2차 방어: LIKE 와일드카드(%/_)를 문자 그대로 이스케이프한다.
+        String escapedTitle = sqlInputGuardService.escapeForLike(safeTitle);
+        List<Product> products = productRepository.searchByNameEscaped(escapedTitle);
         List<ProductDto> productDtos = products.stream().map(ProductDto::new).toList();
         attachSoldCount(productDtos);
         return productDtos;
@@ -429,8 +437,9 @@ public class SellerService {
 
     // 1.2.6 카테고리별 상품 조회
     public List<ProductDto> getProductsByCategory(String categoryName) {
-        // categoryName 기준 필터 조회
-        List<Product> products = productRepository.findByCategory(categoryName);
+        // 카테고리도 화이트리스트/패턴 검증을 거쳐 안전한 값만 조회한다.
+        String safeCategory = sqlInputGuardService.sanitizeCategory(categoryName);
+        List<Product> products = productRepository.findByCategory(safeCategory);
         List<ProductDto> productDtos = products.stream().map(ProductDto::new).toList();
         attachSoldCount(productDtos);
         return productDtos;

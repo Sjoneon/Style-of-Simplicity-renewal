@@ -9,8 +9,8 @@
 - 본문 필수 섹션: `무엇`, `왜`, `언제`, `어떻게`
 - 문서 언어: 한글 기본
 
-## 현재 상태 (2026-05-07)
-- 전체 학습 문서: 100개
+## 현재 상태 (2026-05-08)
+- 전체 학습 문서: 103개
 - 누락 링크 점검: 완료
 
 ## 2026-02
@@ -120,5 +120,12 @@
 - [2026-05-07-korean-garbled-recovery-seller-service-learning.md](./2026-05-07-korean-garbled-recovery-seller-service-learning.md)
 - [2026-05-07-jdk21-pom-sync-learning.md](./2026-05-07-jdk21-pom-sync-learning.md)
 - [2026-05-07-gemini-api-key-optional-prod-learning.md](./2026-05-07-gemini-api-key-optional-prod-learning.md)
+- [2026-05-07-ec2-operation-runbook-learning.md](./2026-05-07-ec2-operation-runbook-learning.md)
+- [2026-05-07-readme-feature-summary-learning.md](./2026-05-07-readme-feature-summary-learning.md)
+- [2026-05-08-troubleshooting-retrospective-learning.md](./2026-05-08-troubleshooting-retrospective-learning.md)
+- [2026-05-09-prod-baseurl-safety-learning.md](./2026-05-09-prod-baseurl-safety-learning.md)
+- [2026-05-10-ops-hardening-and-runbook-finalization-learning.md](./2026-05-10-ops-hardening-and-runbook-finalization-learning.md)
+- [2026-05-10-turnstile-env-slot-learning.md](./2026-05-10-turnstile-env-slot-learning.md)
+- [2026-05-11-korean-comment-and-garbled-audit-learning.md](./2026-05-11-korean-comment-and-garbled-audit-learning.md)
 
 
