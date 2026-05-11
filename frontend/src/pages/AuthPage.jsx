@@ -13,6 +13,8 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage } from '../services/api'
+import { openKakaoPostcode } from '../utils/loadKakaoPostcode'
+import { composeAddressValue } from './mypage/myPageUtils'
 
 function isEmail(value) {
   return /^[\w.%+-]+@[\w.-]+\.[a-zA-Z]{2,}$/.test(String(value || '').trim())
@@ -31,6 +33,12 @@ function normalizeKoreanMobilePhone(phone) {
   }
 
   return raw
+}
+
+const EMPTY_ADDRESS_FORM = {
+  postcode: '',
+  address: '',
+  detailAddress: '',
 }
 
 function AuthPage() {
@@ -58,8 +66,9 @@ function AuthPage() {
     email: '',
     password: '',
     phone: '',
-    address: '',
   })
+  const [registerAddressForm, setRegisterAddressForm] = useState({ ...EMPTY_ADDRESS_FORM })
+  const [openingAddressSearch, setOpeningAddressSearch] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -118,10 +127,18 @@ function AuthPage() {
       return
     }
 
+    const resolvedAddressValue = composeAddressValue(registerAddressForm)
+    if (!resolvedAddressValue) {
+      setError('주소 검색으로 기본 주소를 먼저 선택해 주세요.')
+      setSubmitting(false)
+      return
+    }
+
     try {
       const response = await register({
         ...registerForm,
         phone: normalizedPhone,
+        address: resolvedAddressValue,
       })
       setInfoMessage(response.message || '회원가입이 완료되었습니다. 로그인해 주세요.')
       setTabValue('login')
@@ -131,12 +148,31 @@ function AuthPage() {
         email: '',
         password: '',
         phone: '',
-        address: '',
       })
+      setRegisterAddressForm({ ...EMPTY_ADDRESS_FORM })
     } catch (err) {
       setError(getApiErrorMessage(err, '회원가입 처리에 실패했습니다.'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleOpenRegisterAddressSearch = async () => {
+    setOpeningAddressSearch(true)
+    setError('')
+    setInfoMessage('')
+    try {
+      await openKakaoPostcode(({ postcode, address }) => {
+        setRegisterAddressForm((prev) => ({
+          ...prev,
+          postcode: String(postcode || '').trim(),
+          address: String(address || '').trim(),
+        }))
+      })
+    } catch (err) {
+      setError(getApiErrorMessage(err, '주소 검색 창을 열지 못했습니다.'))
+    } finally {
+      setOpeningAddressSearch(false)
     }
   }
 
@@ -218,11 +254,37 @@ function AuthPage() {
                 required
                 fullWidth
               />
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="우편번호"
+                  value={registerAddressForm.postcode}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                />
+                <Button
+                  type="button"
+                  variant="outlined"
+                  onClick={handleOpenRegisterAddressSearch}
+                  disabled={openingAddressSearch}
+                  sx={{ minWidth: 110, whiteSpace: 'nowrap' }}
+                >
+                  주소 검색
+                </Button>
+              </Stack>
               <TextField
-                label="주소"
-                value={registerForm.address}
-                onChange={(event) => setRegisterForm((prev) => ({ ...prev, address: event.target.value }))}
+                label="기본 주소"
+                value={registerAddressForm.address}
+                placeholder="주소 검색 버튼을 눌러 선택해 주세요."
+                InputProps={{ readOnly: true }}
                 required
+                fullWidth
+              />
+              <TextField
+                label="상세 주소"
+                value={registerAddressForm.detailAddress}
+                onChange={(event) =>
+                  setRegisterAddressForm((prev) => ({ ...prev, detailAddress: event.target.value }))
+                }
                 fullWidth
               />
               <Button type="submit" variant="contained" disabled={submitting}>

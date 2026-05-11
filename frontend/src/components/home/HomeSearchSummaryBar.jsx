@@ -1,7 +1,7 @@
 ﻿import { Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material'
 import { SORT_OPTIONS } from '../../pages/home/homeConfig'
 
-function HomeSearchSummaryBar({ query, onlyInStock, sortOption, onChangeSortOption, visibleCount }) {
+function HomeSearchSummaryBar({ query, onlyInStock, onClearSearch, sortOption, onChangeSortOption, visibleCount }) {
   return (
     <Paper sx={{ p: 1.4, borderRadius: 2.6, border: '1px solid', borderColor: 'divider' }}>
       <Stack
@@ -11,7 +11,14 @@ function HomeSearchSummaryBar({ query, onlyInStock, sortOption, onChangeSortOpti
         justifyContent="space-between"
       >
         <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap" useFlexGap>
-          {query && <Chip size="small" variant="outlined" label={`검색: ${query}`} />}
+          {query && (
+            <Chip
+              size="small"
+              variant="outlined"
+              label={`검색: ${query}`}
+              onDelete={onClearSearch}
+            />
+          )}
           {onlyInStock && <Chip size="small" variant="outlined" label="재고 있음" />}
         </Stack>
 

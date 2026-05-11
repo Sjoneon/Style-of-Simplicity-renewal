@@ -29,13 +29,15 @@ function HomePage() {
         onClick={hero.handleBannerClick}
       />
 
-      <HomeFilterTabs
-        discoveryTab={filters.discoveryTab}
-        onChangeDiscoveryTab={filters.setDiscoveryTab}
-        visibleDiscoveryTabs={filters.visibleDiscoveryTabs}
-        selectedCategory={filters.selectedCategory}
-        onChangeCategory={filters.setSelectedCategory}
-      />
+      {!listing.hasSearched && (
+        <HomeFilterTabs
+          discoveryTab={filters.discoveryTab}
+          onChangeDiscoveryTab={filters.setDiscoveryTab}
+          visibleDiscoveryTabs={filters.visibleDiscoveryTabs}
+          selectedCategory={filters.selectedCategory}
+          onChangeCategory={filters.setSelectedCategory}
+        />
+      )}
 
       {listing.error && <Alert severity="error">{listing.error}</Alert>}
 
@@ -43,6 +45,7 @@ function HomePage() {
         <HomeSearchSummaryBar
           query={listing.query}
           onlyInStock={listing.onlyInStock}
+          onClearSearch={listing.clearSearch}
           sortOption={filters.sortOption}
           onChangeSortOption={filters.setSortOption}
           visibleCount={listing.visibleProducts.length}

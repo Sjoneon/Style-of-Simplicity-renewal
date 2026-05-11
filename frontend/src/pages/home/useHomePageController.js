@@ -220,6 +220,12 @@ export default function useHomePageController() {
     }
   }, [user])
 
+  const clearSearch = useCallback(() => {
+    setQuery('')
+    setOnlyInStock(false)
+    setHasSearched(false)
+  }, [])
+
   const moveToLogin = useCallback(() => {
     setLoginPromptOpen(false)
     const next = encodeURIComponent(`${location.pathname}${location.search}`)
@@ -301,6 +307,7 @@ export default function useHomePageController() {
       hasSearched,
       query,
       onlyInStock,
+      clearSearch,
       visibleProducts,
       loading,
     },
