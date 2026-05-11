@@ -129,5 +129,6 @@
 - [2026-05-11-korean-comment-and-garbled-audit-learning.md](./2026-05-11-korean-comment-and-garbled-audit-learning.md)
 - [2026-05-11-compile-missing-dependency-recovery-learning.md](./2026-05-11-compile-missing-dependency-recovery-learning.md)
 - [2026-05-11-hibernate-like-escape-fix-learning.md](./2026-05-11-hibernate-like-escape-fix-learning.md)
+- [2026-05-11-like-escape-character-hotfix-learning.md](./2026-05-11-like-escape-character-hotfix-learning.md)
 
 

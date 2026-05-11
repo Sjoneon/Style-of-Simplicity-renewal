@@ -16,7 +16,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 상품명 부분 일치 검색
     List<Product> findByNameContaining(String name);
 
-    @Query("select p from Product p where lower(p.name) like lower(concat('%', :keyword, '%')) escape '\\'")
+    @Query("select p from Product p where lower(p.name) like lower(concat('%', :keyword, '%')) escape '!'")
     List<Product> searchByNameEscaped(@Param("keyword") String keyword);
 
     // 카테고리 기준 목록 조회
