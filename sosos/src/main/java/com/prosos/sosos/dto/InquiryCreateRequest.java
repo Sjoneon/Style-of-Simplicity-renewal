@@ -6,6 +6,7 @@ public class InquiryCreateRequest {
     private String category;
     private String title;
     private String content;
+    private String turnstileToken;
 
     public Long getProductId() {
         return productId;
@@ -37,5 +38,13 @@ public class InquiryCreateRequest {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getTurnstileToken() {
+        return turnstileToken;
+    }
+
+    public void setTurnstileToken(String turnstileToken) {
+        this.turnstileToken = turnstileToken;
     }
 }
