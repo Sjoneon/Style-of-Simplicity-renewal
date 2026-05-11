@@ -9,6 +9,7 @@ import com.prosos.sosos.repository.InquiryRepository;
 import com.prosos.sosos.repository.ProductRepository;
 import com.prosos.sosos.repository.UserRepository;
 import com.prosos.sosos.service.NotificationService;
+import com.prosos.sosos.service.security.TurnstileVerificationService;
 import com.prosos.sosos.service.storage.FileStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +32,7 @@ class InquiryControllerSecurityTest {
     private ProductRepository productRepository;
     private NotificationService notificationService;
     private FileStorageService fileStorageService;
+    private TurnstileVerificationService turnstileVerificationService;
     private InquiryController controller;
 
     @BeforeEach
@@ -40,13 +42,15 @@ class InquiryControllerSecurityTest {
         productRepository = mock(ProductRepository.class);
         notificationService = mock(NotificationService.class);
         fileStorageService = mock(FileStorageService.class);
+        turnstileVerificationService = mock(TurnstileVerificationService.class);
 
         controller = new InquiryController(
                 inquiryRepository,
                 userRepository,
                 productRepository,
                 notificationService,
-                fileStorageService
+                fileStorageService,
+                turnstileVerificationService
         );
     }
 
