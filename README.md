@@ -27,7 +27,7 @@ AWS(EC2/RDS/S3/CloudFront) 운영까지 마무리한 포트폴리오 프로젝�
 ### 운영/보안
 - S3 저장 전략(local/s3 분기)
 - Turnstile 연동 구조
-- SQLi 방어 가드(`SqlInputGuardService`)
+- SQLi 방어 가드
 - CloudFront + WAF 운영 장애 복구 기준 정리
 
 ## 기술 스택
