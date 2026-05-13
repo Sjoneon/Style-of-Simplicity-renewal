@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.prosos.sosos.dto.ApiResponse;
 import com.prosos.sosos.dto.ProductDto;
 import com.prosos.sosos.dto.ProductOptionDto;
+import com.prosos.sosos.dto.PublicProductDto;
 import com.prosos.sosos.model.Seller;
 import com.prosos.sosos.model.User;
 import com.prosos.sosos.service.SellerService;
@@ -47,8 +48,8 @@ public class ProductApiController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ProductDto>>> getAllProducts() {
-        List<ProductDto> products = sellerService.getAllProducts();
+    public ResponseEntity<ApiResponse<List<PublicProductDto>>> getAllProducts() {
+        List<PublicProductDto> products = toPublicProducts(sellerService.getAllProducts());
         return ResponseEntity.ok(ApiResponse.success(products, "상품 목록 조회 성공"));
     }
 
@@ -65,9 +66,9 @@ public class ProductApiController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<ProductDto>> getProductById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<PublicProductDto>> getProductById(@PathVariable Long id) {
         try {
-            ProductDto product = sellerService.getProductById(id);
+            PublicProductDto product = new PublicProductDto(sellerService.getProductById(id));
             return ResponseEntity.ok(ApiResponse.success(product, "상품 조회 성공"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -76,23 +77,20 @@ public class ProductApiController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<ProductDto>>> searchProductsByTitle(@RequestParam String title) {
+    public ResponseEntity<ApiResponse<List<PublicProductDto>>> searchProductsByTitle(@RequestParam String title) {
         try {
-            // 서비스 계층에서 SQLi 가드 검증을 통과한 검색어만 조회한다.
-            List<ProductDto> products = sellerService.searchProductsByTitle(title);
+            List<PublicProductDto> products = toPublicProducts(sellerService.searchProductsByTitle(title));
             return ResponseEntity.ok(ApiResponse.success(products, "상품 검색 성공"));
         } catch (IllegalArgumentException e) {
-            // 위험 패턴/잘못된 검색어는 400으로 명확히 반환한다.
             return ResponseEntity.badRequest()
                     .body(ApiResponse.failure(e.getMessage()));
         }
     }
 
     @GetMapping("/category")
-    public ResponseEntity<ApiResponse<List<ProductDto>>> getProductsByCategory(@RequestParam String category) {
+    public ResponseEntity<ApiResponse<List<PublicProductDto>>> getProductsByCategory(@RequestParam String category) {
         try {
-            // 카테고리 입력도 동일한 가드 검증 후 조회한다.
-            List<ProductDto> products = sellerService.getProductsByCategory(category);
+            List<PublicProductDto> products = toPublicProducts(sellerService.getProductsByCategory(category));
             return ResponseEntity.ok(ApiResponse.success(products, "카테고리 조회 성공"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
@@ -317,7 +315,6 @@ public class ProductApiController {
             return objectMapper.readValue(optionsJson, new TypeReference<>() {
             });
         } catch (IOException ignored) {
-            // JSON 파싱이 실패하면 "M:3,L:4" 같은 CSV 옵션 입력도 허용한다.
             List<ProductOptionDto> parsedOptions = new ArrayList<>();
             String[] tokens = optionsJson.split(",");
             int displayOrder = 0;
@@ -361,13 +358,16 @@ public class ProductApiController {
             return objectMapper.readValue(value, new TypeReference<>() {
             });
         } catch (IOException ignored) {
-            // 탐색 탭 값이 JSON 배열이 아니어도 콤마 구분 문자열로 복구한다.
             return Arrays.stream(value.split(","))
                     .map(String::trim)
                     .filter(item -> !item.isBlank())
                     .distinct()
                     .toList();
         }
+    }
+
+    private List<PublicProductDto> toPublicProducts(List<ProductDto> products) {
+        return products.stream().map(PublicProductDto::new).toList();
     }
 
     private Map<String, List<String>> parseKeywordMap(String value) throws IOException {
@@ -378,7 +378,6 @@ public class ProductApiController {
             return objectMapper.readValue(value, new TypeReference<>() {
             });
         } catch (IOException ignored) {
-            // 키워드 JSON이 깨져도 "a,b,c" 형태를 manual 키워드로 보정한다.
             List<String> manualKeywords = Arrays.stream(value.split(","))
                     .map(String::trim)
                     .filter(item -> !item.isBlank())

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.prosos.sosos.dto.ProductDto;
 import com.prosos.sosos.dto.ProductOptionDto;
+import com.prosos.sosos.dto.PublicProductDto;
 import com.prosos.sosos.model.Seller;
 import com.prosos.sosos.model.User;
 import com.prosos.sosos.service.SellerService;
@@ -74,8 +75,8 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductDto>> getAllProducts() {
-        return ResponseEntity.ok(sellerService.getAllProducts());
+    public ResponseEntity<List<PublicProductDto>> getAllProducts() {
+        return ResponseEntity.ok(toPublicProducts(sellerService.getAllProducts()));
     }
 
     @PutMapping("/{productId}")
@@ -115,19 +116,19 @@ public class ProductController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<ProductDto>> searchProductsByTitle(@RequestParam String title) {
-        return ResponseEntity.ok(sellerService.searchProductsByTitle(title));
+    public ResponseEntity<List<PublicProductDto>> searchProductsByTitle(@RequestParam String title) {
+        return ResponseEntity.ok(toPublicProducts(sellerService.searchProductsByTitle(title)));
     }
 
     @GetMapping("/category")
-    public ResponseEntity<List<ProductDto>> getProductsByCategory(@RequestParam String category) {
-        return ResponseEntity.ok(sellerService.getProductsByCategory(category));
+    public ResponseEntity<List<PublicProductDto>> getProductsByCategory(@RequestParam String category) {
+        return ResponseEntity.ok(toPublicProducts(sellerService.getProductsByCategory(category)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductDto> getProductById(@PathVariable Long id) {
+    public ResponseEntity<PublicProductDto> getProductById(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(sellerService.getProductById(id));
+            return ResponseEntity.ok(new PublicProductDto(sellerService.getProductById(id)));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
@@ -207,6 +208,10 @@ public class ProductController {
             return seller;
         }
         return null;
+    }
+
+    private List<PublicProductDto> toPublicProducts(List<ProductDto> products) {
+        return products.stream().map(PublicProductDto::new).toList();
     }
 
     private List<ProductOptionDto> parseOptionDtos(String optionsJson, List<ProductOptionDto> defaultValue) throws IOException {

@@ -73,7 +73,7 @@ export function filterProducts(products, query, selectedCategory, onlyInStock, d
       product.description?.toLowerCase().includes(keyword)
 
     const matchesCategory = matchesSelectedCategory(product, selectedCategory)
-    const matchesStock = !onlyInStock || Number(product.quantity || 0) > 0
+    const matchesStock = !onlyInStock || Boolean(product.hasStock)
     const matchesTab = matchesDiscovery(product, discoveryTab)
 
     return matchesKeyword && matchesCategory && matchesStock && matchesTab

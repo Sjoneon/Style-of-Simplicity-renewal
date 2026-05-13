@@ -130,5 +130,11 @@
 - [2026-05-11-compile-missing-dependency-recovery-learning.md](./2026-05-11-compile-missing-dependency-recovery-learning.md)
 - [2026-05-11-hibernate-like-escape-fix-learning.md](./2026-05-11-hibernate-like-escape-fix-learning.md)
 - [2026-05-11-like-escape-character-hotfix-learning.md](./2026-05-11-like-escape-character-hotfix-learning.md)
+- [2026-05-11-signup-kakao-address-search-learning.md](./2026-05-11-signup-kakao-address-search-learning.md)
+- [2026-05-11-home-search-clear-chip-and-tab-hide-learning.md](./2026-05-11-home-search-clear-chip-and-tab-hide-learning.md)
+- [2026-05-11-project-closeout-and-garbled-repair-learning.md](./2026-05-11-project-closeout-and-garbled-repair-learning.md)
+- [2026-05-11-korean-encoding-recurrence-prevention-learning.md](./2026-05-11-korean-encoding-recurrence-prevention-learning.md)
+- [2026-05-11-readme-final-practitioner-style-learning.md](./2026-05-11-readme-final-practitioner-style-learning.md)
+- [2026-05-13-public-product-response-hardening-learning.md](./2026-05-13-public-product-response-hardening-learning.md)
 
 

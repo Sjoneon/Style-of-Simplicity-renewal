@@ -132,7 +132,7 @@ function ProductDetailPage() {
   }
 
   const handleAddToCart = async () => {
-    if (!product || Number(product.quantity || 0) <= 0) {
+    if (!product || !product.hasStock) {
       setToastMessage('SOLD OUT 상품입니다.')
       return
     }
@@ -144,7 +144,7 @@ function ProductDetailPage() {
     }
     if (hasOptions) {
       const option = product.options.find((item) => String(item.id) === String(selectedOptionId))
-      if (!option || Number(option.quantity || 0) <= 0) {
+      if (!option || option.soldOut) {
         setToastMessage('선택한 사이즈는 SOLD OUT 입니다.')
         return
       }
@@ -173,7 +173,7 @@ function ProductDetailPage() {
   }
 
   const handleDirectPurchase = async () => {
-    if (!product || Number(product.quantity || 0) <= 0) {
+    if (!product || !product.hasStock) {
       setToastMessage('SOLD OUT 상품입니다.')
       return
     }
@@ -185,7 +185,7 @@ function ProductDetailPage() {
     }
     if (hasOptions) {
       const option = product.options.find((item) => String(item.id) === String(selectedOptionId))
-      if (!option || Number(option.quantity || 0) <= 0) {
+      if (!option || option.soldOut) {
         setToastMessage('선택한 사이즈는 SOLD OUT 입니다.')
         return
       }
@@ -287,14 +287,12 @@ function ProductDetailPage() {
   const discountRate = hasSale
     ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
     : 0
-  const hasStock = Number(product.quantity) > 0
+  const hasStock = Boolean(product.hasStock)
   const hasOptions = Array.isArray(product.options) && product.options.length > 0
   const selectedOption =
     hasOptions && selectedOptionId
       ? product.options.find((option) => String(option.id) === String(selectedOptionId))
       : null
-  const selectedOptionStock = selectedOption ? Number(selectedOption.quantity || 0) : 0
-
   return (
     <Stack spacing={2.2}>
       {error && <Alert severity="error">{error}</Alert>}
@@ -369,12 +367,12 @@ function ProductDetailPage() {
             <Typography variant="body2" color={hasStock ? 'success.main' : 'error.main'}>
               {hasOptions
                 ? selectedOption
-                  ? selectedOptionStock > 0
-                    ? `선택 사이즈 재고: ${selectedOptionStock}`
-                    : '선택 사이즈 SOLD OUT'
+                  ? selectedOption.soldOut
+                    ? '선택 사이즈 SOLD OUT'
+                    : '선택 사이즈 구매 가능'
                   : '사이즈를 선택해 주세요.'
                 : hasStock
-                  ? `재고: ${product.quantity}`
+                  ? '구매 가능'
                   : 'SOLD OUT'}
             </Typography>
 
@@ -387,7 +385,7 @@ function ProductDetailPage() {
                 </Typography>
                 <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
                   {product.options.map((option) => {
-                    const soldOut = Number(option.quantity || 0) <= 0
+                    const soldOut = Boolean(option.soldOut)
                     const selected = String(selectedOptionId) === String(option.id)
                     return (
                       <Chip
