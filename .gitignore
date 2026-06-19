@@ -1,7 +1,6 @@
 # Global local secret files
 .env
 .env.*
-!.env.example
 *.env
 **/.env.local
 **/.env.*.local
@@ -15,12 +14,21 @@ frontend/.env.local
 
 # Runtime and local temporary artifacts
 .tmp-*.txt
+*.tmp
 *.log
 frontend-dev.log
 sosos/backend.out.log
 sosos/backend.err.log
 sosos/uploads/
 **/uploads/
+_local_archive/
+node_modules/
+dist/
+build/
+target/
 
 # Local editor settings
+.idea/
 .vscode/
+.DS_Store
+Thumbs.db
