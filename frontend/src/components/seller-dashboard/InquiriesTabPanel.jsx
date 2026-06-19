@@ -1,21 +1,25 @@
-﻿import {
+import {
   Box,
   Button,
   Chip,
-  FormControlLabel,
   MenuItem,
   Paper,
   Stack,
-  Switch,
   TextField,
   Typography,
 } from '@mui/material'
 import resolveImageUrl from '../../utils/resolveImageUrl'
 
+const INQUIRY_STATUS_LABELS = {
+  answered: '답변 된 문의',
+  pending: '미답변된 문의',
+}
+
 function InquiriesTabPanel({
   visibleInquiries,
-  inquiryOnlyPending,
-  setInquiryOnlyPending,
+  inquiryAnswerFilter,
+  answeredInquiryCount,
+  unansweredInquiryCount,
   inquiryCategoryFilter,
   setInquiryCategoryFilter,
   inquiryCategoryFilterOptions,
@@ -33,16 +37,13 @@ function InquiriesTabPanel({
       <Paper sx={{ p: 2, borderRadius: 2.4 }}>
         <Stack spacing={1}>
           <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1} alignItems={{ xs: 'flex-start', md: 'center' }}>
-            <Typography variant="h6" fontWeight={700}>사용자 Q&A 관리</Typography>
-            <FormControlLabel
-              control={(
-                <Switch
-                  checked={inquiryOnlyPending}
-                  onChange={(event) => setInquiryOnlyPending(event.target.checked)}
-                />
-              )}
-              label="미답변만 보기"
-            />
+            <Stack spacing={0.4}>
+              <Typography variant="h6" fontWeight={700}>{INQUIRY_STATUS_LABELS[inquiryAnswerFilter]}</Typography>
+              <Stack direction="row" spacing={0.7} flexWrap="wrap" useFlexGap>
+                <Chip size="small" variant="outlined" label={`답변 완료 ${answeredInquiryCount}건`} />
+                <Chip size="small" variant="outlined" color="warning" label={`미답변 ${unansweredInquiryCount}건`} />
+              </Stack>
+            </Stack>
           </Stack>
 
           <TextField
@@ -78,6 +79,12 @@ function InquiriesTabPanel({
 
                 <Stack direction="row" spacing={0.8} alignItems="center" flexWrap="wrap" useFlexGap>
                   <Chip size="small" variant="outlined" color="primary" label={getInquiryCategoryLabel(inquiry.category)} />
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    color={String(inquiry.answer || '').trim() ? 'success' : 'warning'}
+                    label={String(inquiry.answer || '').trim() ? '답변 완료' : '미답변'}
+                  />
                   <Typography variant="body2" color="text.secondary">
                     작성자: {inquiry.userName || inquiry.userId} / 상품ID: {inquiry.productId ?? '-'}
                   </Typography>

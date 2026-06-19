@@ -1,5 +1,22 @@
 ﻿export const CATEGORY_OPTIONS = ['OUTER', 'TOP', 'BOTTOMS', 'SHOES', 'BAG_ACC']
 
+export const PRODUCT_PAGE_SIZE = 50
+
+export const PRODUCT_SORT_OPTIONS = [
+  { value: 'RECENT', label: '등록 최근 순' },
+  { value: 'OLDEST', label: '등록 오래된 순' },
+  { value: 'PRICE_DESC', label: '가격 높은 순' },
+  { value: 'PRICE_ASC', label: '가격 낮은 순' },
+]
+
+export const SALES_PERIOD_OPTIONS = [
+  { value: 'day', label: '일 매출' },
+  { value: 'month', label: '월 매출' },
+  { value: 'year', label: '연 매출' },
+]
+
+const REVENUE_ORDER_STATUSES = new Set(['ORDERED', 'PROCESSED', 'EXCHANGED'])
+
 export const FALLBACK_DISCOVERY_TABS = [
   { tabKey: 'starter', label: '처음 시작', displayOrder: 0, active: true },
   { tabKey: 'gift', label: '선물', displayOrder: 1, active: true },
@@ -169,6 +186,106 @@ export function formatDateTime(value) {
     return '-'
   }
   return String(value).replace('T', ' ').slice(0, 16)
+}
+
+export function isRevenueOrder(order) {
+  return REVENUE_ORDER_STATUSES.has(String(order?.status || '').toUpperCase())
+}
+
+function toLocalDateKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function toLocalMonthKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${year}-${month}`
+}
+
+function extractDateKey(value) {
+  const matched = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return matched ? matched[0] : ''
+}
+
+function getOrderAmount(order) {
+  const amount = Number(order?.totalAmount || 0)
+  return Number.isFinite(amount) && amount > 0 ? amount : 0
+}
+
+function getRevenueOrders(orders) {
+  return Array.isArray(orders) ? orders.filter(isRevenueOrder) : []
+}
+
+function sumOrderAmounts(orders) {
+  return orders.reduce((sum, order) => sum + getOrderAmount(order), 0)
+}
+
+function buildDailySalesBars(revenueOrders, now) {
+  const baseDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(baseDate)
+    date.setDate(baseDate.getDate() - (6 - index))
+    const key = toLocalDateKey(date)
+    const amount = sumOrderAmounts(revenueOrders.filter((order) => extractDateKey(order.orderDate) === key))
+
+    return {
+      key,
+      label: key.slice(5),
+      amount,
+    }
+  })
+}
+
+function buildMonthlySalesBars(revenueOrders, now) {
+  const baseDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  return Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(baseDate)
+    date.setMonth(baseDate.getMonth() - (5 - index))
+    const key = toLocalMonthKey(date)
+    const amount = sumOrderAmounts(revenueOrders.filter((order) => extractDateKey(order.orderDate).startsWith(key)))
+
+    return {
+      key,
+      label: key,
+      amount,
+    }
+  })
+}
+
+function buildYearlySalesBars(revenueOrders, now) {
+  const baseYear = now.getFullYear()
+  return Array.from({ length: 5 }, (_, index) => {
+    const key = String(baseYear - (4 - index))
+    const amount = sumOrderAmounts(revenueOrders.filter((order) => extractDateKey(order.orderDate).startsWith(key)))
+
+    return {
+      key,
+      label: key,
+      amount,
+    }
+  })
+}
+
+export function buildSalesAnalytics(orders, now = new Date()) {
+  const revenueOrders = getRevenueOrders(orders)
+  const todayKey = toLocalDateKey(now)
+  const monthKey = toLocalMonthKey(now)
+  const yearKey = String(now.getFullYear())
+
+  return {
+    totalSalesAmount: sumOrderAmounts(revenueOrders),
+    dailySalesAmount: sumOrderAmounts(revenueOrders.filter((order) => extractDateKey(order.orderDate) === todayKey)),
+    monthlySalesAmount: sumOrderAmounts(revenueOrders.filter((order) => extractDateKey(order.orderDate).startsWith(monthKey))),
+    yearlySalesAmount: sumOrderAmounts(revenueOrders.filter((order) => extractDateKey(order.orderDate).startsWith(yearKey))),
+    charts: {
+      day: buildDailySalesBars(revenueOrders, now),
+      month: buildMonthlySalesBars(revenueOrders, now),
+      year: buildYearlySalesBars(revenueOrders, now),
+    },
+  }
 }
 
 export function parseKeywordsMap(keywordsText) {

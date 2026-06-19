@@ -4,6 +4,7 @@ import HomeBannerManager from './HomeBannerManager'
 
 function HomeTabPanel(props) {
   const {
+    activeHomeView,
     bannerForm,
     setBannerForm,
     myProducts,
@@ -28,31 +29,35 @@ function HomeTabPanel(props) {
 
   return (
     <Stack spacing={1.6}>
-      <HomeBannerManager
-        bannerForm={bannerForm}
-        setBannerForm={setBannerForm}
-        myProducts={myProducts}
-        banners={banners}
-        savingBanner={savingBanner}
-        deletingBannerId={deletingBannerId}
-        onSubmit={onCreateBanner}
-        onReset={onResetBanner}
-        onDelete={onDeleteBanner}
-      />
+      {activeHomeView === 'banner' && (
+        <HomeBannerManager
+          bannerForm={bannerForm}
+          setBannerForm={setBannerForm}
+          myProducts={myProducts}
+          banners={banners}
+          savingBanner={savingBanner}
+          deletingBannerId={deletingBannerId}
+          onSubmit={onCreateBanner}
+          onReset={onResetBanner}
+          onDelete={onDeleteBanner}
+        />
+      )}
 
-      <DiscoveryTabManager
-        managedDiscoveryTabs={managedDiscoveryTabs}
-        discoveryTabDrafts={discoveryTabDrafts}
-        setDiscoveryTabDrafts={setDiscoveryTabDrafts}
-        newDiscoveryTabForm={newDiscoveryTabForm}
-        setNewDiscoveryTabForm={setNewDiscoveryTabForm}
-        creatingDiscoveryTab={creatingDiscoveryTab}
-        updatingDiscoveryTabId={updatingDiscoveryTabId}
-        deletingDiscoveryTabId={deletingDiscoveryTabId}
-        onCreate={onCreateDiscoveryTab}
-        onSave={onSaveDiscoveryTab}
-        onDelete={onDeleteDiscoveryTab}
-      />
+      {activeHomeView === 'discovery' && (
+        <DiscoveryTabManager
+          managedDiscoveryTabs={managedDiscoveryTabs}
+          discoveryTabDrafts={discoveryTabDrafts}
+          setDiscoveryTabDrafts={setDiscoveryTabDrafts}
+          newDiscoveryTabForm={newDiscoveryTabForm}
+          setNewDiscoveryTabForm={setNewDiscoveryTabForm}
+          creatingDiscoveryTab={creatingDiscoveryTab}
+          updatingDiscoveryTabId={updatingDiscoveryTabId}
+          deletingDiscoveryTabId={deletingDiscoveryTabId}
+          onCreate={onCreateDiscoveryTab}
+          onSave={onSaveDiscoveryTab}
+          onDelete={onDeleteDiscoveryTab}
+        />
+      )}
     </Stack>
   )
 }
