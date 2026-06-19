@@ -9,13 +9,13 @@
 - 본문 필수 섹션: `무엇`, `왜`, `언제`, `어떻게`
 - 문서 언어: 한글 기본
 
-## 현재 상태 (2026-05-08)
-- 전체 학습 문서: 103개
+## 현재 상태 (2026-05-13)
+- 전체 학습 문서: 104개
 - 누락 링크 점검: 완료
 
 ## 2026-02
 - [2026-02-15-api-boundary-prep-learning.md](./2026-02-15-api-boundary-prep-learning.md)
-- [2026-02-15-preflight-learning.md](./2026-02-15-preflight-learning.md)
+- [2026-02-15-development-checklist-learning.md](./2026-02-15-development-checklist-learning.md)
 - [2026-02-19-api-boundary-learning.md](./2026-02-19-api-boundary-learning.md)
 - [2026-02-19-gitignore-security-learning.md](./2026-02-19-gitignore-security-learning.md)
 - [2026-02-22-order-inventory-learning.md](./2026-02-22-order-inventory-learning.md)
@@ -112,6 +112,7 @@
 - [2026-04-25-repository-comment-style-align-learning.md](./2026-04-25-repository-comment-style-align-learning.md)
 
 ## 2026-05
+- [2026-05-28-readme-portfolio-refactor-learning.md](./2026-05-28-readme-portfolio-refactor-learning.md)
 - [2026-05-01-ai-quality-followup-patch-learning.md](./2026-05-01-ai-quality-followup-patch-learning.md)
 - [2026-05-01-ai-season-override-followup-learning.md](./2026-05-01-ai-season-override-followup-learning.md)
 - [2026-05-01-ai-normal-user-and-free-tier-guard-learning.md](./2026-05-01-ai-normal-user-and-free-tier-guard-learning.md)
@@ -136,5 +137,9 @@
 - [2026-05-11-korean-encoding-recurrence-prevention-learning.md](./2026-05-11-korean-encoding-recurrence-prevention-learning.md)
 - [2026-05-11-readme-final-practitioner-style-learning.md](./2026-05-11-readme-final-practitioner-style-learning.md)
 - [2026-05-13-public-product-response-hardening-learning.md](./2026-05-13-public-product-response-hardening-learning.md)
+- [2026-05-13-public-product-comment-review-learning.md](./2026-05-13-public-product-comment-review-learning.md)
+
+## 2026-06
+- [2026-06-19-public-docs-cleanup-learning.md](./2026-06-19-public-docs-cleanup-learning.md)
 
 
