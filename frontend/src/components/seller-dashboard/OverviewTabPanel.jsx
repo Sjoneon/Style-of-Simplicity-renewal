@@ -1,13 +1,22 @@
 ﻿import { Chip, Paper, Stack, Typography } from '@mui/material'
 
+import SalesChartPanel from './SalesChartPanel'
+
 function OverviewTabPanel({
   myProductsCount,
   totalSalesAmountText,
+  dailySalesAmountText,
+  monthlySalesAmountText,
+  yearlySalesAmountText,
+  activeSalesPeriod,
+  setActiveSalesPeriod,
+  salesChartData,
   todayOrderCount,
   unansweredInquiryCount,
   shippingPendingCount,
   orderStatusSummary,
   orderStatusFilterOptions,
+  formatMoney,
 }) {
   return (
     <Stack spacing={1.4}>
@@ -29,6 +38,18 @@ function OverviewTabPanel({
           <Typography variant="h4" fontWeight={800}>{unansweredInquiryCount}건</Typography>
         </Paper>
       </Stack>
+
+      <SalesChartPanel
+        title="기간별 매출"
+        activeSalesPeriod={activeSalesPeriod}
+        onSalesPeriodChange={setActiveSalesPeriod}
+        salesChartData={salesChartData}
+        totalSalesAmountText={totalSalesAmountText}
+        dailySalesAmountText={dailySalesAmountText}
+        monthlySalesAmountText={monthlySalesAmountText}
+        yearlySalesAmountText={yearlySalesAmountText}
+        formatMoney={formatMoney}
+      />
 
       <Paper sx={{ p: 2.0, borderRadius: 2.4 }}>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} alignItems={{ xs: 'flex-start', md: 'center' }}>

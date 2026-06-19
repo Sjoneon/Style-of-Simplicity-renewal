@@ -6,7 +6,7 @@
   - 루트 `.editorconfig`
   - `scripts/check-korean-garbled.ps1`
   - `.vscode/settings.json`
-  - `sosos/docs/daily/codex-preflight-checklist.md`
+  - 개발 작업 체크리스트
 
 ## 왜
 - 깨진 한글은 예외 메시지/주석의 의미 전달을 망가뜨려 유지보수와 디버깅 속도를 크게 낮춘다.
@@ -25,7 +25,7 @@
 3. 자동 점검 스크립트
 - 깨짐 패턴 검사 스크립트를 추가해 작업 전후 1회 실행
 4. 체크리스트 반영
-- preflight 체크리스트에 “깨진 한글 패턴 점검” 항목을 추가해 습관화
+- 작업 전 체크리스트에 “깨진 한글 패턴 점검” 항목을 추가해 습관화
 
 ## 완료 기준(Definition of Done)
 - 전역 스캔에서 깨짐 패턴이 없고, UTF-8 저장 규칙 + 자동 점검 절차가 프로젝트에 반영된다.

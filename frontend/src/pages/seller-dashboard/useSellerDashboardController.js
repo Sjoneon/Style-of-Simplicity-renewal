@@ -27,6 +27,8 @@ import {
   updateManagedProduct,
 } from '../../services/productApi'
 import {
+  buildSalesAnalytics,
+  CATEGORY_OPTIONS,
   buildLegacyFlagsFromTabKeys,
   createEmptyProductForm,
   EMPTY_BANNER_FORM,
@@ -40,12 +42,54 @@ import {
   sanitizeDiscoveryTabKeys,
   normalizeManagedDiscoveryTabs,
   ORDER_STATUS_FILTER_OPTIONS,
+  PRODUCT_PAGE_SIZE,
+  PRODUCT_SORT_OPTIONS,
 } from './sellerDashboardUtils'
 
 export const SELLER_INQUIRY_CATEGORY_FILTER_OPTIONS = [
   { value: 'ALL', label: '전체' },
   ...INQUIRY_CATEGORY_OPTIONS,
 ]
+
+function buildProductCategoryFilterOptions(products) {
+  const categorySet = new Set(CATEGORY_OPTIONS)
+  products.forEach((product) => {
+    const category = String(product.category || '').trim().toUpperCase()
+    if (category) {
+      categorySet.add(category)
+    }
+  })
+
+  return [
+    { value: 'ALL', label: 'ALL' },
+    ...[...categorySet].map((category) => ({
+      value: category,
+      label: category,
+    })),
+  ]
+}
+
+function getRegistrationSortValue(product) {
+  const id = Number(product?.id || 0)
+  return Number.isFinite(id) ? id : 0
+}
+
+function sortProducts(products, sortOrder) {
+  const sorted = [...products]
+  sorted.sort((a, b) => {
+    if (sortOrder === 'OLDEST') {
+      return getRegistrationSortValue(a) - getRegistrationSortValue(b)
+    }
+    if (sortOrder === 'PRICE_DESC') {
+      return Number(b.price || 0) - Number(a.price || 0)
+    }
+    if (sortOrder === 'PRICE_ASC') {
+      return Number(a.price || 0) - Number(b.price || 0)
+    }
+    return getRegistrationSortValue(b) - getRegistrationSortValue(a)
+  })
+  return sorted
+}
 
 function buildDiscoveryTabDraftMap(discoveryTabs) {
   const next = {}
@@ -105,6 +149,8 @@ function toggleDiscoveryTab(formSetter, tabKey, checked) {
 
 export default function useSellerDashboardController(user) {
   const [activeTab, setActiveTab] = useState('overview')
+  const [activeHomeView, setActiveHomeView] = useState('banner')
+  const [activeSalesPeriod, setActiveSalesPeriod] = useState('day')
 
   const [products, setProducts] = useState([])
   const [banners, setBanners] = useState([])
@@ -136,7 +182,11 @@ export default function useSellerDashboardController(user) {
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL')
   const [actionLoadingOrderId, setActionLoadingOrderId] = useState(null)
 
-  const [inquiryOnlyPending, setInquiryOnlyPending] = useState(false)
+  const [productCategoryFilter, setProductCategoryFilter] = useState('ALL')
+  const [productSortOrder, setProductSortOrder] = useState('RECENT')
+  const [productPage, setProductPage] = useState(1)
+
+  const [inquiryAnswerFilter, setInquiryAnswerFilter] = useState('pending')
   const [inquiryCategoryFilter, setInquiryCategoryFilter] = useState('ALL')
   const [inquiryDrafts, setInquiryDrafts] = useState({})
   const [savingInquiryId, setSavingInquiryId] = useState(null)
@@ -187,6 +237,38 @@ export default function useSellerDashboardController(user) {
     return products.filter((product) => Number(product.sellerId) === Number(user?.id))
   }, [products, user?.id])
 
+  const productCategoryFilterOptions = useMemo(() => {
+    return buildProductCategoryFilterOptions(myProducts)
+  }, [myProducts])
+
+  const filteredProducts = useMemo(() => {
+    const categoryFilteredProducts = productCategoryFilter === 'ALL'
+      ? myProducts
+      : myProducts.filter((product) => String(product.category || '').toUpperCase() === productCategoryFilter)
+
+    return sortProducts(categoryFilteredProducts, productSortOrder)
+  }, [myProducts, productCategoryFilter, productSortOrder])
+
+  const productPageCount = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredProducts.length / PRODUCT_PAGE_SIZE))
+  }, [filteredProducts.length])
+
+  const visibleProducts = useMemo(() => {
+    const safePage = Math.min(Math.max(productPage, 1), productPageCount)
+    const startIndex = (safePage - 1) * PRODUCT_PAGE_SIZE
+    return filteredProducts.slice(startIndex, startIndex + PRODUCT_PAGE_SIZE)
+  }, [filteredProducts, productPage, productPageCount])
+
+  useEffect(() => {
+    setProductPage(1)
+  }, [productCategoryFilter, productSortOrder])
+
+  useEffect(() => {
+    if (productPage > productPageCount) {
+      setProductPage(productPageCount)
+    }
+  }, [productPage, productPageCount])
+
   const assignableDiscoveryTabs = useMemo(() => {
     return managedDiscoveryTabs.filter((tab) => tab.active !== false)
   }, [managedDiscoveryTabs])
@@ -206,15 +288,15 @@ export default function useSellerDashboardController(user) {
     const sorted = [...inquiries].sort((a, b) => String(b.createdDate || '').localeCompare(String(a.createdDate || '')))
     return sorted.filter((item) => {
       const hasAnswer = Boolean(String(item.answer || '').trim())
-      const matchesPendingFilter = !inquiryOnlyPending || !hasAnswer
+      const matchesAnswerFilter = inquiryAnswerFilter === 'answered' ? hasAnswer : !hasAnswer
       const normalizedCategory = normalizeInquiryCategory(item.category)
       const matchesCategory = inquiryCategoryFilter === 'ALL' || normalizedCategory === inquiryCategoryFilter
-      return matchesPendingFilter && matchesCategory
+      return matchesAnswerFilter && matchesCategory
     })
-  }, [inquiries, inquiryCategoryFilter, inquiryOnlyPending])
+  }, [inquiries, inquiryAnswerFilter, inquiryCategoryFilter])
 
-  const totalSalesAmount = useMemo(() => {
-    return orders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0)
+  const salesAnalytics = useMemo(() => {
+    return buildSalesAnalytics(orders)
   }, [orders])
 
   const todayOrderCount = useMemo(() => {
@@ -228,6 +310,10 @@ export default function useSellerDashboardController(user) {
 
   const unansweredInquiryCount = useMemo(() => {
     return inquiries.filter((inquiry) => !String(inquiry.answer || '').trim()).length
+  }, [inquiries])
+
+  const answeredInquiryCount = useMemo(() => {
+    return inquiries.filter((inquiry) => String(inquiry.answer || '').trim()).length
   }, [inquiries])
 
   const orderStatusSummary = useMemo(() => {
@@ -726,6 +812,9 @@ export default function useSellerDashboardController(user) {
     },
     data: {
       myProducts,
+      visibleProducts,
+      filteredProductsCount: filteredProducts.length,
+      productCategoryFilterOptions,
       banners,
       orders,
       inquiries,
@@ -735,10 +824,15 @@ export default function useSellerDashboardController(user) {
       assignableDiscoveryTabs,
     },
     metrics: {
-      totalSalesAmount,
+      totalSalesAmount: salesAnalytics.totalSalesAmount,
+      dailySalesAmount: salesAnalytics.dailySalesAmount,
+      monthlySalesAmount: salesAnalytics.monthlySalesAmount,
+      yearlySalesAmount: salesAnalytics.yearlySalesAmount,
+      salesCharts: salesAnalytics.charts,
       todayOrderCount,
       shippingPendingCount,
       unansweredInquiryCount,
+      answeredInquiryCount,
       orderStatusSummary,
     },
     orderView: {
@@ -749,8 +843,8 @@ export default function useSellerDashboardController(user) {
       orderStatusFilterOptions: ORDER_STATUS_FILTER_OPTIONS,
     },
     inquiryView: {
-      inquiryOnlyPending,
-      setInquiryOnlyPending,
+      inquiryAnswerFilter,
+      setInquiryAnswerFilter,
       inquiryCategoryFilter,
       setInquiryCategoryFilter,
       inquiryDrafts,
@@ -761,6 +855,8 @@ export default function useSellerDashboardController(user) {
       inquiryCategoryFilterOptions: SELLER_INQUIRY_CATEGORY_FILTER_OPTIONS,
     },
     homeManageView: {
+      activeHomeView,
+      setActiveHomeView,
       bannerForm,
       setBannerForm,
       savingBanner,
@@ -770,6 +866,21 @@ export default function useSellerDashboardController(user) {
       creatingDiscoveryTab,
       updatingDiscoveryTabId,
       deletingDiscoveryTabId,
+    },
+    productManageView: {
+      productCategoryFilter,
+      setProductCategoryFilter,
+      productSortOrder,
+      setProductSortOrder,
+      productPage,
+      setProductPage,
+      productPageCount,
+      pageSize: PRODUCT_PAGE_SIZE,
+      sortOptions: PRODUCT_SORT_OPTIONS,
+    },
+    salesView: {
+      activeSalesPeriod,
+      setActiveSalesPeriod,
     },
     productDialogView: {
       createDialogOpen,
