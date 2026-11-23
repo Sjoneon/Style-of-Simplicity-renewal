@@ -44,11 +44,17 @@ public class WebConfig implements WebMvcConfigurer {
             return;
         }
 
-        Path uploadPath = Paths.get(uploadBaseDir).toAbsolutePath().normalize();
-        String resourceLocation = uploadPath.toUri().toString();
-
         registry.addResourceHandler("/images/**")
-                .addResourceLocations(resourceLocation);
+                .addResourceLocations(toDirectoryLocation(uploadBaseDir));
+    }
+
+    // Path.toUri()는 폴더가 이미 있을 때만 끝에 '/'를 붙인다. '/'가 없으면 Spring이 파일을
+    // 상위 폴더에서 찾아 업로드 이미지가 404가 되므로 폴더 존재 여부와 상관없이 붙인다.
+    // 자세한 배경: docs/daily/learning/2026-11-23-upload-image-404-trailing-slash-learning.md
+    static String toDirectoryLocation(String baseDir) {
+        Path uploadPath = Paths.get(baseDir).toAbsolutePath().normalize();
+        String location = uploadPath.toUri().toString();
+        return location.endsWith("/") ? location : location + "/";
     }
 
     private String[] resolveAllowedOrigins() {

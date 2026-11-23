@@ -142,4 +142,7 @@
 ## 2026-06
 - [2026-06-19-public-docs-cleanup-learning.md](./2026-06-19-public-docs-cleanup-learning.md)
 
+## 2026-11
+- [2026-11-23-upload-image-404-trailing-slash-learning.md](./2026-11-23-upload-image-404-trailing-slash-learning.md)
+
 
