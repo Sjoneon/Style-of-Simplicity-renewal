@@ -39,7 +39,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -628,23 +627,6 @@ public class SellerService {
         inquiryRepository.save(inquiry);
         // 기존 답변이 있는 수정이므로 updated=true로 처리한다.
         notificationService.notifyInquiryAnswered(inquiry, true);
-    }
-
-    // 1.5.1 키워드 관리
-    public void manageKeyword(String keyword, boolean add) {
-        if (add) {
-            // 신규 키워드 등록
-            Keyword newKeyword = new Keyword(keyword, ""); // 타입은 빈 문자열
-            keywordRepository.save(newKeyword);
-        } else {
-            // 기존 키워드 삭제
-            Optional<Keyword> keywordToDelete = keywordRepository.findByKeyword(keyword);
-            if (keywordToDelete.isPresent()) {
-                keywordRepository.delete(keywordToDelete.get());
-            } else {
-                throw new IllegalArgumentException("해당 키워드를 찾을 수 없습니다.");
-            }
-        }
     }
 
 
