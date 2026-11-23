@@ -499,11 +499,6 @@ public class SellerService {
 
     // 1.3.5 상품 구매 처리
     @Transactional
-    public void processPurchase(Long productId, HttpSession session) {
-        processPurchase(productId, null, session);
-    }
-
-    @Transactional
     public void processPurchase(Long productId, Long optionId, HttpSession session) {
         User buyer = (User) session.getAttribute("loggedInUser");
         if (buyer == null) {

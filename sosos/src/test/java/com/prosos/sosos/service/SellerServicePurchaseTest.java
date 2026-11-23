@@ -72,7 +72,7 @@ class SellerServicePurchaseTest {
         when(productRepository.findByIdForUpdate(200L)).thenReturn(Optional.of(product));
         when(productOptionRepository.findByProductIdOrderByDisplayOrderAscIdAsc(200L)).thenReturn(java.util.Collections.emptyList());
 
-        sellerService.processPurchase(200L, session);
+        sellerService.processPurchase(200L, null, session);
 
         ArgumentCaptor<Order> orderCaptor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(orderCaptor.capture());
@@ -88,7 +88,7 @@ class SellerServicePurchaseTest {
     void processPurchase_throwsWhenNotLoggedIn() {
         HttpSession session = new MockHttpSession();
 
-        assertThrows(IllegalStateException.class, () -> sellerService.processPurchase(201L, session));
+        assertThrows(IllegalStateException.class, () -> sellerService.processPurchase(201L, null, session));
 
         verify(productRepository, never()).findByIdForUpdate(any());
         verify(orderRepository, never()).save(any(Order.class));
@@ -110,7 +110,7 @@ class SellerServicePurchaseTest {
         when(productRepository.findByIdForUpdate(202L)).thenReturn(Optional.of(product));
         when(productOptionRepository.findByProductIdOrderByDisplayOrderAscIdAsc(202L)).thenReturn(java.util.Collections.emptyList());
 
-        assertThrows(IllegalArgumentException.class, () -> sellerService.processPurchase(202L, session));
+        assertThrows(IllegalArgumentException.class, () -> sellerService.processPurchase(202L, null, session));
 
         verify(orderRepository, never()).save(any(Order.class));
     }
