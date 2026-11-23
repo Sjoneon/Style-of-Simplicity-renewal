@@ -39,7 +39,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -88,15 +87,6 @@ public class SellerService {
         this.passwordEncoder = passwordEncoder;
         this.fileStorageService = fileStorageService;
         this.sqlInputGuardService = sqlInputGuardService;
-    }
-
-    // 1.1.1 판매자 회원가입
-    public Seller registerSeller(Seller seller) {
-        if (seller.getPassword() == null || seller.getPassword().isBlank()) {
-            throw new IllegalArgumentException("비밀번호를 입력해 주세요.");
-        }
-        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
-        return sellerRepository.save(seller);
     }
 
     // 1.1.2 판매자 로그인
@@ -500,11 +490,6 @@ public class SellerService {
 
     // 1.3.5 상품 구매 처리
     @Transactional
-    public void processPurchase(Long productId, HttpSession session) {
-        processPurchase(productId, null, session);
-    }
-
-    @Transactional
     public void processPurchase(Long productId, Long optionId, HttpSession session) {
         User buyer = (User) session.getAttribute("loggedInUser");
         if (buyer == null) {
@@ -628,23 +613,6 @@ public class SellerService {
         inquiryRepository.save(inquiry);
         // 기존 답변이 있는 수정이므로 updated=true로 처리한다.
         notificationService.notifyInquiryAnswered(inquiry, true);
-    }
-
-    // 1.5.1 키워드 관리
-    public void manageKeyword(String keyword, boolean add) {
-        if (add) {
-            // 신규 키워드 등록
-            Keyword newKeyword = new Keyword(keyword, ""); // 타입은 빈 문자열
-            keywordRepository.save(newKeyword);
-        } else {
-            // 기존 키워드 삭제
-            Optional<Keyword> keywordToDelete = keywordRepository.findByKeyword(keyword);
-            if (keywordToDelete.isPresent()) {
-                keywordRepository.delete(keywordToDelete.get());
-            } else {
-                throw new IllegalArgumentException("해당 키워드를 찾을 수 없습니다.");
-            }
-        }
     }
 
 

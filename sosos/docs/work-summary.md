@@ -56,8 +56,9 @@
 ## 현재 주요 경로
 - 프론트(소비자): `http://localhost:3000/`
 - 프론트(판매자 로그인): `http://localhost:3000/admin/login`
-- 백엔드(Thymeleaf/레거시): `http://localhost:8085/`
-- 백엔드 API: `http://localhost:8085/api/v1/*`
+- 백엔드 API: `http://localhost:8085/api/v1/*`, 문의 API `http://localhost:8085/api/inquiries`
+- 예전 Thymeleaf 화면과 레거시 컨트롤러는 삭제됨 (2026-11-23). 판매자 계정은 DB에서 직접 생성한다.
+- 테스트 상품 시드: `./scripts/seed-test-products.ps1 -SellerBusinessNumber 123-45-67890` (비밀번호는 `SEED_SELLER_PASSWORD` 환경변수)
 
 ## 검증 명령
 - 백엔드 컴파일

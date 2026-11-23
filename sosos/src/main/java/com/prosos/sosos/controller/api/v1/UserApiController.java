@@ -259,16 +259,6 @@ public class UserApiController {
         return ResponseEntity.ok(ApiResponse.success("guest", "비로그인 사용자"));
     }
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<ApiResponse<UserSessionDto>> getUserById(@PathVariable Long userId) {
-        User user = userService.findUserById(userId);
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.failure("사용자를 찾을 수 없습니다."));
-        }
-        return ResponseEntity.ok(ApiResponse.success(UserSessionDto.fromUser(user), "사용자 조회 성공"));
-    }
-
     private boolean isBusinessNumber(String username) {
         return username.matches("\\d{3}-\\d{2}-\\d{5}");
     }

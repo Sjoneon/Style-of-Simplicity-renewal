@@ -2,7 +2,9 @@ param(
     [string]$BackendBaseUrl = "http://localhost:8085",
     [string]$ImageDir = "D:\Projects\Style-of-Simplicity\images",
     [int]$Count = 20,
-    [long]$SellerId = 0
+    [Parameter(Mandatory = $true)]
+    [string]$SellerBusinessNumber,
+    [string]$SellerPassword = $env:SEED_SELLER_PASSWORD
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,21 +23,21 @@ function Invoke-JsonGet([string]$url) {
 Assert-Ok (Test-Path $ImageDir) "Image directory not found: $ImageDir"
 
 $productListApi = "$BackendBaseUrl/api/v1/products"
-$productRegisterUrl = "$BackendBaseUrl/seller/products/product_register"
 $currentProductsPayload = Invoke-JsonGet $productListApi
 Assert-Ok ($currentProductsPayload.success -eq $true) "Failed to fetch product list."
 
-$currentProducts = @($currentProductsPayload.data)
-$initialCount = $currentProducts.Count
+$initialCount = @($currentProductsPayload.data).Count
 
-if ($SellerId -le 0) {
-    $detectedSellerId = $null
-    if ($initialCount -gt 0) {
-        $detectedSellerId = $currentProducts[0].sellerId
-    }
-    Assert-Ok ($detectedSellerId -ne $null) "SellerId is required. No existing product to detect sellerId."
-    $SellerId = [long]$detectedSellerId
-}
+# Product create requires a seller session; the product is owned by the logged-in seller.
+Assert-Ok (-not [string]::IsNullOrWhiteSpace($SellerPassword)) "Seller password is required (-SellerPassword or SEED_SELLER_PASSWORD)."
+$cookieJar = New-TemporaryFile
+$loginBody = New-TemporaryFile
+@{ username = $SellerBusinessNumber; password = $SellerPassword } | ConvertTo-Json -Compress |
+    Set-Content -LiteralPath $loginBody -Encoding ascii -NoNewline
+$loginStatus = (& curl.exe -sS -o NUL -w "%{http_code}" -c $cookieJar.FullName -X POST "$BackendBaseUrl/api/v1/users/login" `
+    -H "Content-Type: application/json" --data-binary ("@{0}" -f $loginBody.FullName)).Trim()
+Remove-Item -LiteralPath $loginBody
+Assert-Ok ($loginStatus -eq "200") "Seller login failed. status=$loginStatus"
 
 $images = Get-ChildItem -LiteralPath $ImageDir -File |
     Where-Object { $_.Extension -match "^\.(png|jpg|jpeg|webp)$" }
@@ -59,21 +61,22 @@ for ($i = 1; $i -le $Count; $i++) {
         "-sS",
         "-o", "NUL",
         "-w", "%{http_code}",
+        "-b", $cookieJar.FullName,
         "-X", "POST",
-        $productRegisterUrl,
+        $productListApi,
         "-F", ("name={0}" -f $name),
         "-F", ("category={0}" -f $category),
         "-F", ("price={0}" -f $price),
         "-F", ("quantity={0}" -f $quantity),
         "-F", ("description={0}" -f $description),
         "-F", ("situationScore={0}" -f $situationScore),
-        "-F", ("sellerId={0}" -f $SellerId),
+        "-F", "keywords={}",
         "-F", ("image=@{0}" -f $image.FullName)
     )
 
     try {
         $statusCode = (& curl.exe @curlArgs).Trim()
-        if ($statusCode -eq "302" -or $statusCode -eq "200") {
+        if ($statusCode -eq "201") {
             $created++
             Write-Host ("[SEED] CREATED ({0}/{1}) status={2} name={3}" -f $created, $Count, $statusCode, $name)
         } else {
@@ -86,6 +89,7 @@ for ($i = 1; $i -le $Count; $i++) {
     }
 }
 
+Remove-Item -LiteralPath $cookieJar
 $updatedProductsPayload = Invoke-JsonGet $productListApi
 Assert-Ok ($updatedProductsPayload.success -eq $true) "Failed to re-fetch product list."
 $finalCount = @($updatedProductsPayload.data).Count
