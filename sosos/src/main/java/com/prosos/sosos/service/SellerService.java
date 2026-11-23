@@ -89,15 +89,6 @@ public class SellerService {
         this.sqlInputGuardService = sqlInputGuardService;
     }
 
-    // 1.1.1 판매자 회원가입
-    public Seller registerSeller(Seller seller) {
-        if (seller.getPassword() == null || seller.getPassword().isBlank()) {
-            throw new IllegalArgumentException("비밀번호를 입력해 주세요.");
-        }
-        seller.setPassword(passwordEncoder.encode(seller.getPassword()));
-        return sellerRepository.save(seller);
-    }
-
     // 1.1.2 판매자 로그인
     public boolean login(String businessNumber, String password) {
         Seller seller = sellerRepository.findByBusinessNumber(businessNumber);

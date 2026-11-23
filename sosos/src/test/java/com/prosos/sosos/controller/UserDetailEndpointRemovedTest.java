@@ -24,24 +24,17 @@ class UserDetailEndpointRemovedTest {
     @BeforeEach
     void setUp() {
         UserService userService = mock(UserService.class);
-        SellerService sellerService = mock(SellerService.class);
         User user = new User();
         user.setId(1L);
         when(userService.findUserById(anyLong())).thenReturn(user);
 
         mockMvc = MockMvcBuilders.standaloneSetup(
-                new UserApiController(userService, sellerService, mock(RecentProductViewService.class)),
-                new UserController(userService, sellerService)
+                new UserApiController(userService, mock(SellerService.class), mock(RecentProductViewService.class))
         ).build();
     }
 
     @Test
     void apiUserDetailByIdIsNotExposed() throws Exception {
         mockMvc.perform(get("/api/v1/users/1")).andExpect(status().isNotFound());
-    }
-
-    @Test
-    void legacyUserDetailByIdIsNotExposed() throws Exception {
-        mockMvc.perform(get("/users/1")).andExpect(status().isNotFound());
     }
 }
