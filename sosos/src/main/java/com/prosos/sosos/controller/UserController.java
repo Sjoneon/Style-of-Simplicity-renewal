@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -107,18 +106,6 @@ public class UserController {
     public String logout(HttpSession session) {
         session.invalidate();
         return "redirect:/";
-    }
-
-    @GetMapping("/{userId}")
-    public String getUserInfo(@PathVariable Long userId, Model model) {
-        User user = userService.findUserById(userId);
-        if (user != null) {
-            model.addAttribute("user", user);
-            return "user-info";
-        }
-
-        model.addAttribute("error", "사용자를 찾을 수 없습니다.");
-        return "user-info";
     }
 
     private boolean isBusinessNumber(String username) {
